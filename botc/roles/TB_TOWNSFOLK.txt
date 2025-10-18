@@ -1,0 +1,13 @@
+Washerwoman
+Librarian
+Investigator
+Chef
+Empath
+Fortune Teller
+Undertaker
+Monk
+Ravenkeeper
+Virgin
+Slayer
+Soldier
+Mayor

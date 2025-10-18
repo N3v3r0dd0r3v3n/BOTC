@@ -1,6 +1,8 @@
 from math import floor
 
 from botc.model import Game, Player, Phase, Nomination
+from botc.prompt import CLIPrompt
+from botc.roles.scarlet_woman import ScarletWoman
 from botc.rules import Rules
 from botc.roles.imp import Imp
 from botc.roles.slayer import Slayer
@@ -20,7 +22,9 @@ def new_game(names):
     if len(players) >= 3:
         g.assign_role(players[2].id, FortuneTeller())
     if len(players) >= 4:
-        g.assign_role(players[3].id, Empath())
+        g.assign_role(players[3].id, ScarletWoman())
+    if len(players) >= 5:
+        g.assign_role(players[4].id, Empath())
 
     desired_order = ["Fortune Teller", "Empath", "Imp"]
     present = {getattr(p.role, "id", None) for p in g.players if p.role}
@@ -41,14 +45,16 @@ def print_state(g: Game, header: str):
 
 
 def run():
-    g = new_game(["Eve", "Sam", "Kim"])  # 3-player demo
+    g = new_game(["Eve", "Sam", "Kim", "Luke", "Anna"])  # try 5 for Empath & SW
+    # hook up interactive prompt
+    g.prompt = CLIPrompt(lambda pid: g.player(pid).name)
+
     print_state(g, "Game created")
     safety_counter = 0
-
     while True:
         safety_counter += 1
-        if safety_counter > 50:
-            print("\n[DEBUG] Safety break (looped too long). Log so far:")
+        if safety_counter > 200:
+            print("\n[DEBUG] Safety break.")
             print("\n".join(g.log))
             break
 
@@ -69,23 +75,23 @@ def run():
             alive = g.alive_players()
             if len(alive) >= 2:
                 voter_ids = [p.id for p in alive]
-                # nominate
-                nominator_id = g.prompt.choose_one(alive[0].id, voter_ids, "Who nominates?")  # simple demo
-                target_id = g.prompt.choose_one(nominator_id, [pid for pid in voter_ids if pid != nominator_id],
-                                                "Nominate whom?")
-                if nominator_id and target_id:
-                    g.start_nomination(nominator_id, target_id)
-                    # votes (everyone alive, including target; change to your table rules if needed)
-                    for pid in voter_ids:
-                        yes = g.prompt.confirm(pid, f"Vote to execute {g.player(target_id).name}?")
-                        g.cast_vote(pid, yes)
-                    if g.close_nomination():
-                        g.execute(target_id)
+                # Ask who nominates and whom
+                nominator_id = g.prompt.choose_one(voter_ids[0], voter_ids, "Who nominates?")
+                if nominator_id:
+                    target_pool = [pid for pid in voter_ids if pid != nominator_id]
+                    target_id = g.prompt.choose_one(nominator_id, target_pool, "Nominate whom?")
+                    if target_id:
+                        g.start_nomination(nominator_id, target_id)
+                        # Vote (alive first; dead can still spend ghost vote and will be prompted if present)
+                        for pid in voter_ids:
+                            yes = g.prompt.confirm(pid, f"Vote to execute {g.player(target_id).name}?")
+                            g.cast_vote(pid, yes)
+                        if g.close_nomination():
+                            g.execute(target_id)
             g.step()
 
         elif g.phase == Phase.FINAL_CHECK:
-            ended = g.rules.check_end(g)
-            if ended:
+            if g.rules.check_end(g):
                 print("\n=== LOG ===")
                 print("\n".join(g.log) or "(no log lines)")
                 print("\n=== GAME OVER ===")
@@ -93,8 +99,8 @@ def run():
             g.step()
 
         else:
-            # VOTING / EXECUTION placeholders
             g.step()
+
 
 
 if __name__ == "__main__":

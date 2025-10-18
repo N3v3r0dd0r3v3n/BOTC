@@ -35,6 +35,7 @@ class Player:
     seat: int
     alive: bool = True
     role: Optional[object] = None
+    ghost_vote_available: bool = False
 
 
 @dataclass
@@ -77,9 +78,9 @@ class Game:
         if pid not in self.pending_dawn:
             self.pending_dawn.append(pid)
 
+
     def kill_now(self, pid: int):
-        self.player(pid).alive = False
-        self.log.append(f"Player {pid} dies immediately")
+        self.mark_dead(pid, "immediately")
 
     def step(self):
         if self.phase == Phase.SETUP:
@@ -87,8 +88,7 @@ class Game:
             self.night = 1
         elif self.phase == Phase.NIGHT:
             for pid in self.pending_dawn:
-                self.player(pid).alive = False
-                self.log.append(f"Player {pid} dies at dawn")
+                self.mark_dead(pid, "at dawn")
             self.pending_dawn.clear()
             self.phase = Phase.DAY
         elif self.phase == Phase.DAY:
@@ -118,15 +118,24 @@ class Game:
 
     def cast_vote(self, voter_id: int, vote_for: bool):
         assert self.current_nomination and not self.current_nomination.closed
-        assert self.player(voter_id).alive
+        voter = self.player(voter_id)
+
+        can_vote_alive = voter.alive
+        can_vote_dead = (not voter.alive) and voter.ghost_vote_available
+        if not (can_vote_alive or can_vote_dead):
+            return
+
         prev = self.current_nomination.votes.get(voter_id)
         if prev is True and vote_for is False:
-            self.current_nomination.votes_for -= 1  # allow overwrite during the pass if needed
+            self.current_nomination.votes_for -= 1
         if prev is False and vote_for is True:
             self.current_nomination.votes_for += 1
         if prev is None and vote_for is True:
             self.current_nomination.votes_for += 1
         self.current_nomination.votes[voter_id] = vote_for
+
+        if not voter.alive and voter.ghost_vote_available:
+            voter.ghost_vote_available = False
 
     def close_nomination(self) -> bool:
         assert self.current_nomination and not self.current_nomination.closed
@@ -145,11 +154,41 @@ class Game:
 
     def execute(self, pid: int):
         p = self.player(pid)
-        # allow roles to react to execution
         if p.role and hasattr(p.role, "on_execution"):
             p.role.on_execution(self, pid)
-        p.alive = False
+        self.mark_dead(pid, "at dusk")
         self.log.append(f"{p.name} is executed at dusk")
+
+    def mark_dead(self, pid: int, cause: str):
+        """Mark a player dead, grant ghost vote, call hooks, and handle specials."""
+        p = self.player(pid)
+        if not p.alive:
+            return  # already dead; ignore duplicates
+        p.alive = False
+        p.ghost_vote_available = True
+        self.log.append(f"{p.name} dies {cause}")
+        # role death hook
+        if p.role and hasattr(p.role, "on_death"):
+            p.role.on_death(self)
+        # special: Scarlet Woman promotion if a Demon just died
+        self._maybe_promote_scarlet_woman_on_demon_death(pid)
+
+    def _maybe_promote_scarlet_woman_on_demon_death(self, dead_pid: int):
+        dead = self.player(dead_pid)
+        if getattr(dead.role, "type", None) != RoleType.DEMON:
+            return
+        # Only if 5+ players are alive *after* this death
+        if len(self.alive_players()) < 5:
+            return
+        # Find a living Scarlet Woman
+        sw = next((p for p in self.alive_players()
+                   if getattr(p.role, "id", None) == "Scarlet Woman"), None)
+        if not sw:
+            return
+        # Promote her to Demon (Imp). Local import avoids circulars.
+        from botc.roles.imp import Imp
+        self.assign_role(sw.id, Imp())
+        self.log.append(f"{sw.name} becomes the Imp (Scarlet Woman)")
 
 
 
