@@ -1,3 +1,6 @@
+python3 -m venv .venv
+source .venv/bin/activate
+
 A) Start server
 python -m botc.server
 
@@ -21,3 +24,28 @@ curl -s -X POST http://localhost:8765/api/room/abcd1234/step | jq
 
 Nomination/vote prompts will similarly appear; respond with:
 {"type":"respond","cid":4,"answer":true}
+
+
+E) List rooms
+curl -s http://localhost:8765/api/lobby
+
+F) Create room
+curl -s -X POST http://localhost:8765/api/lobby \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Friday BOTC","script":"Trouble Brewing","max_players":10}'
+
+
+G) Join room unseated
+curl -s -X POST http://localhost:8765/api/room/<gid>/join -H 'Content-Type: application/json' -d '{"name":"Eve"}'
+
+h) Take seat
+curl -s -X POST http://localhost:8765/api/room/236d3b94/sit -H 'Content-Type: application/json' -d '{"player_id":2,"seat":3}'
+
+i) Vacate seat
+curl -s -X POST http://localhost:8765/api/room/236d3b94/vacate -H 'Content-Type: application/json' -d '{"player_id":2}'
+
+j) Change capacity
+curl -s -X POST http://localhost:8765/api/room/236d3b94/seats -H 'Content-Type: application/json' -d '{"max_players":6}'
+
+
+

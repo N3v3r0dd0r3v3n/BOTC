@@ -34,7 +34,7 @@ class Phase(Enum):
 class Player:
     id: int
     name: str
-    seat: int
+    seat: Optional[int] = None
     alive: bool = True
     role: Optional[object] = None
     ghost_vote_available: bool = False
