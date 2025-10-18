@@ -1,6 +1,8 @@
 from botc.model import Team, RoleType, Game
+from botc.scripts import register_role
 
 
+@register_role
 class Empath:
     id = "Empath"
     team = Team.GOOD
@@ -16,12 +18,17 @@ class Empath:
 
         # Seats are arranged numerically; wrap around at ends
         left = g.players[(me.seat - 2) % len(g.players)]
-        right = g.players[(me.seat) % len(g.players)]
+        right = g.players[me.seat % len(g.players)]
         neighbours = [left, right]
 
         evil_neighbours = sum(
             1 for p in neighbours if getattr(p.role, "team", None) == Team.EVIL
         )
+
+        if g.is_poisoned(self.owner):
+            # Poison: give a wrong number (simple rule: (evil_neighbours+1)%3 )
+            evil_neighbours = (evil_neighbours + 1) % 3
+
         g.log.append(f"{me.name} (Empath) senses {evil_neighbours} evil neighbours")
 
     def on_day_start(self, g: Game): pass

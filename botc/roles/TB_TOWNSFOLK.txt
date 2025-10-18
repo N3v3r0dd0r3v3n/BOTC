@@ -1,13 +1,13 @@
-Washerwoman
+Done - Washerwoman
 Librarian
-Investigator
+WIP - Investigator
 Chef
-Empath
-Fortune Teller
-Undertaker
+Done - Empath
+Done - Fortune Teller
+WIP - Undertaker
 Monk
 Ravenkeeper
 Virgin
-Slayer
+Done - Slayer
 Soldier
 Mayor

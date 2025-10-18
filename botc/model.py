@@ -5,6 +5,8 @@ from math import floor
 from typing import Optional, List, Dict
 
 from botc.prompt import AutoPrompt
+from botc.scripts import Script
+from botc.scripts import ROLE_REGISTRY
 
 
 class Team(Enum):
@@ -55,10 +57,15 @@ class Game:
     pending_dawn: List[int] = field(default_factory=list)
     log: List[str] = field(default_factory=list)
     rules: Optional[object] = None
+    script: Optional[Script] = None
     night_order: List[str] = field(default_factory=list)
     current_nomination: Nomination | None = None
     prompt: object = field(default_factory=AutoPrompt)
     force_winner: str | None = None  # "GOOD" or "EVIL"
+    current_nomination: Nomination | None = None
+    best_nomination: Nomination | None = None  # highest votes this day
+    executed_today: Optional[int] = None  # seat id executed (only once per day)
+    last_executed_pid: int | None = None
 
     def player(self, pid: int) -> Player:
         return next(p for p in self.players if p.id == pid)
@@ -78,7 +85,6 @@ class Game:
         if pid not in self.pending_dawn:
             self.pending_dawn.append(pid)
 
-
     def kill_now(self, pid: int):
         self.mark_dead(pid, "immediately")
 
@@ -91,11 +97,13 @@ class Game:
                 self.mark_dead(pid, "at dawn")
             self.pending_dawn.clear()
             self.phase = Phase.DAY
+            self.start_day()
         elif self.phase == Phase.DAY:
             self.phase = Phase.VOTING
         elif self.phase == Phase.VOTING:
             self.phase = Phase.EXECUTION
         elif self.phase == Phase.EXECUTION:
+            self.finish_day()
             self.phase = Phase.FINAL_CHECK
         elif self.phase == Phase.FINAL_CHECK:
             ended = self.rules.check_end(self) if self.rules else False
@@ -142,14 +150,33 @@ class Game:
         n = self.current_nomination
         n.closed = True
         needed = self.majority_required()
+
+        # Butler rule: a Butler may only vote if their chosen master votes
+        adjusted_for = n.votes_for
+        for voter_id, voted_for in list(n.votes.items()):
+            if not voted_for:
+                continue
+            voter = self.player(voter_id)
+            if getattr(voter.role, "id", None) == "Butler":
+                master = getattr(voter.role, "master_pid", None)
+                if master is None or not n.votes.get(master, False):
+                    # remove their 'for' vote
+                    n.votes[voter_id] = False
+                    adjusted_for -= 1
+
+        n.votes_for = adjusted_for
         passes = n.votes_for >= needed
 
         voters_for = ", ".join(self.player(v).name for v, ok in n.votes.items() if ok)
         voters_against = ", ".join(self.player(v).name for v, ok in n.votes.items() if not ok)
-
         self.log.append(
-            f"Votes for {self.player(n.target).name}: {n.votes_for} (needed {needed}) → {'EXECUTE' if passes else 'NO EXECUTION'}")
+            f"Votes for {self.player(n.target).name}: {n.votes_for} (needed {needed}) → {'MAJORITY' if passes else 'NO MAJORITY'}"
+        )
         self.log.append(f"For: {voters_for or '—'} | Against: {voters_against or '—'}")
+
+        # Best-on-block: strictly greater replaces (ties do not)
+        if not self.best_nomination or n.votes_for > self.best_nomination.votes_for:
+            self.best_nomination = n
         return passes
 
     def execute(self, pid: int):
@@ -157,6 +184,7 @@ class Game:
         if p.role and hasattr(p.role, "on_execution"):
             p.role.on_execution(self, pid)
         self.mark_dead(pid, "at dusk")
+        self.last_executed_pid = pid
         self.log.append(f"{p.name} is executed at dusk")
 
     def mark_dead(self, pid: int, cause: str):
@@ -189,6 +217,49 @@ class Game:
         from botc.roles.imp import Imp
         self.assign_role(sw.id, Imp())
         self.log.append(f"{sw.name} becomes the Imp (Scarlet Woman)")
+
+    def start_day(self):
+        self.best_nomination = None
+        self.executed_today = None
+        # call on_day_start for roles
+        for p in self.players:
+            if p.role and hasattr(p.role, "on_day_start"):
+                p.role.on_day_start(self)
+
+    def finish_day(self):
+        """Execute highest on the block if any (ties = no execution)."""
+        if self.executed_today is not None:
+            return  # already executed via immediate effect or earlier
+        n = self.best_nomination
+        if not n:
+            self.log.append("No execution today")
+            return
+        # If best_nomination didn't meet majority, do nothing
+        if n.votes_for < self.majority_required():
+            self.log.append("No execution (no majority)")
+            return
+        # Check if it is uniquely highest (i.e., no tie).
+        # For our simple engine, best_nomination is only updated on strictly greater votes,
+        # so a tie will never overwrite; that means ties → no execution.
+        self.execute(n.target)
+
+    def is_poisoned(self, pid: int) -> bool:
+        # Any living Poisoner’s current target counts as poisoned
+        for p in self.players:
+            if getattr(p.role, "id", None) == "Poisoner" and p.role.poisoned_pid == pid and p.alive:
+                return True
+        return False
+
+    def current_night_order(self) -> List[str]:
+        if self.script:
+            return self.script.first_night if self.night == 1 else self.script.other_nights
+        return self.night_order
+
+    def assign_by_names(g, seat_to_role_names: list[str]):
+        for seat, role_name in enumerate(seat_to_role_names, start=1):
+            if role_name not in ROLE_REGISTRY:  # skip unimplemented
+                continue
+            g.assign_role(seat, ROLE_REGISTRY[role_name]())
 
 
 

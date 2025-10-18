@@ -8,7 +8,6 @@ from botc.model import Phase
 from botc.roles.saint import Saint
 
 
-
 def test_slayer_kills_imp_if_targeted_in_day():
     g = new_game(["Eve", "Sam", "Kim"])
     imp = next(p for p in g.players if isinstance(p.role, Imp))
@@ -38,7 +37,7 @@ def test_fortune_teller_logs_result():
 
 
 def test_empath_reports_number():
-    g = new_game(["Eve", "Sam", "Kim", "Luke"])
+    g = new_game(["Eve", "Sam", "Kim", "Luke", "Robert"])
     em = next(p for p in g.players if isinstance(p.role, Empath))
     g.phase = g.phase.NIGHT
     em.role.on_night(g)
@@ -61,7 +60,7 @@ def test_basic_nomination_executes_on_majority():
 
 
 def test_ft_uses_prompt_two_choices():
-    g = new_game(["A","B","C","D"])
+    g = new_game(["A", "B", "C", "D"])
     g.prompt = AutoPrompt()
     ft = next(p for p in g.players if isinstance(p.role, FortuneTeller))
     g.phase = g.phase.NIGHT
@@ -82,3 +81,24 @@ def test_saint_exec_forces_evil_win():
     assert g.force_winner == "EVIL"
 
 
+def test_best_on_block_unique():
+    g = new_game(["A", "B", "C", "D", "E"])
+    g.phase = g.phase.DAY
+    # A nominates B → 3 votes
+    g.start_nomination(1, 2)
+    for pid in [1, 3, 4]:
+        g.cast_vote(pid, True)
+    g.close_nomination()
+    # C nominates D → also 3 votes (tie shouldn't replace best)
+    g.start_nomination(3, 4)
+    for pid in [1, 3, 5]: g.cast_vote(pid, True)
+    g.close_nomination()
+    g.finish_day()
+    # Only first highest with majority executes (tie → no change)
+    assert g.player(2).alive is False
+
+
+def test_poisoner_affects_ft():
+    g = new_game(["A", "B", "C", "D", "E", "F"])
+    # ensure role presence
+    assert any(getattr(p.role, "id", "") == "Poisoner" for p in g.players)

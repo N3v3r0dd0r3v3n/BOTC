@@ -1,5 +1,7 @@
+from __future__ import annotations
 from typing import Protocol
 from botc.model import Team, RoleType, Game
+
 
 class Role(Protocol):
     id: str

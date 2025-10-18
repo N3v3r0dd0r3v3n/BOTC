@@ -1,5 +1,8 @@
 from botc.model import Team, RoleType, Game
+from botc.scripts import register_role
 
+
+@register_role
 class Slayer:
     id = "Slayer"
     team = Team.GOOD

@@ -1,6 +1,8 @@
 from botc.model import Team, RoleType, Game
+from botc.scripts import register_role
 
 
+@register_role
 class ScarletWoman:
     id = "Scarlet Woman"
     team = Team.EVIL
