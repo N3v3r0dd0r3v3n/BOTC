@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from botc.model import Team, RoleType, Game, Player
+from botc.model import Team, RoleType, Game
 
 
 class FortuneTeller:
@@ -11,7 +11,7 @@ class FortuneTeller:
     owner = None
 
     def __init__(self):
-        self.red_herring: int | None = None  # seat id of a random good player
+        self.red_herring: int | None = None
 
     def on_setup(self, g: Game):
         goods = [p for p in g.alive_players() if getattr(p.role, "team", None) == Team.GOOD]
@@ -20,26 +20,15 @@ class FortuneTeller:
 
     def on_night(self, g: Game):
         me = g.player(self.owner)
-        if not me.alive:
-            return
-
+        if not me.alive: return
         others = g.alive_others(self.owner)
-        if len(others) < 2:
-            return
+        if len(others) < 2: return
 
-        a, b = random.sample(others, 2)  # temporary stub until prompts exist
+        cand_ids = [p.id for p in others]
+        pick = g.prompt.choose_two(self.owner, cand_ids, "Choose two players")
+        if not pick: return
+        a = g.player(pick[0]); b = g.player(pick[1])
 
         demon_present = any(getattr(p.role, "type", None) == RoleType.DEMON for p in (a, b))
-        red_herring = g.player(self.red_herring) if self.red_herring else None
-
-        sees_yes = demon_present or (red_herring and red_herring.id in {a.id, b.id})
+        sees_yes = demon_present or (self.red_herring in {a.id, b.id})
         g.log.append(f"{me.name} sees {'YES' if sees_yes else 'NO'} when checking {a.name} & {b.name}")
-
-    def on_day_start(self, g: Game):
-        pass
-
-    def on_death(self, g: Game):
-        pass
-
-    def on_execution(self, g: Game, executed_pid: int):
-        pass

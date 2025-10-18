@@ -66,23 +66,21 @@ def run():
 
         elif g.phase == Phase.DAY:
             print_state(g, "Day begins")
-            # Simple demo: first alive nominates the second alive
-
             alive = g.alive_players()
-
             if len(alive) >= 2:
-                nominator = alive[0]
-                target = alive[1]
-                g.start_nomination(nominator.id, target.id)
-
-                # Voting order: everyone alive raises hand except the target (demo choice)
-
-                for voter in g.alive_players():
-                    vote_for = voter.id != target.id  # target abstains in this demo
-                    g.cast_vote(voter.id, vote_for)
-
-                if g.close_nomination():
-                    g.execute(target.id)
+                voter_ids = [p.id for p in alive]
+                # nominate
+                nominator_id = g.prompt.choose_one(alive[0].id, voter_ids, "Who nominates?")  # simple demo
+                target_id = g.prompt.choose_one(nominator_id, [pid for pid in voter_ids if pid != nominator_id],
+                                                "Nominate whom?")
+                if nominator_id and target_id:
+                    g.start_nomination(nominator_id, target_id)
+                    # votes (everyone alive, including target; change to your table rules if needed)
+                    for pid in voter_ids:
+                        yes = g.prompt.confirm(pid, f"Vote to execute {g.player(target_id).name}?")
+                        g.cast_vote(pid, yes)
+                    if g.close_nomination():
+                        g.execute(target_id)
             g.step()
 
         elif g.phase == Phase.FINAL_CHECK:

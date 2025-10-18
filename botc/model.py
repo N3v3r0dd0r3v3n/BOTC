@@ -2,7 +2,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from math import floor
-from typing import Optional, List
+from typing import Optional, List, Dict
+
+from botc.prompt import AutoPrompt
 
 
 class Team(Enum):
@@ -41,6 +43,8 @@ class Nomination:
     target: int
     votes_for: int = 0
     closed: bool = False
+    votes: Dict[int, bool] = field(default_factory=dict)  # voter_id -> True/False
+
 
 @dataclass
 class Game:
@@ -52,6 +56,8 @@ class Game:
     rules: Optional[object] = None
     night_order: List[str] = field(default_factory=list)
     current_nomination: Nomination | None = None
+    prompt: object = field(default_factory=AutoPrompt)
+    force_winner: str | None = None  # "GOOD" or "EVIL"
 
     def player(self, pid: int) -> Player:
         return next(p for p in self.players if p.id == pid)
@@ -113,22 +119,37 @@ class Game:
     def cast_vote(self, voter_id: int, vote_for: bool):
         assert self.current_nomination and not self.current_nomination.closed
         assert self.player(voter_id).alive
-        if vote_for:
+        prev = self.current_nomination.votes.get(voter_id)
+        if prev is True and vote_for is False:
+            self.current_nomination.votes_for -= 1  # allow overwrite during the pass if needed
+        if prev is False and vote_for is True:
             self.current_nomination.votes_for += 1
+        if prev is None and vote_for is True:
+            self.current_nomination.votes_for += 1
+        self.current_nomination.votes[voter_id] = vote_for
 
     def close_nomination(self) -> bool:
-        """Return True if execution passes."""
         assert self.current_nomination and not self.current_nomination.closed
-        self.current_nomination.closed = True
-        passes = self.current_nomination.votes_for >= self.majority_required()
         n = self.current_nomination
-        self.log.append(f"Votes for {self.player(n.target).name}: {n.votes_for} "
-                        f"(needed {self.majority_required()}) → {'EXECUTE' if passes else 'NO EXECUTION'}")
+        n.closed = True
+        needed = self.majority_required()
+        passes = n.votes_for >= needed
+
+        voters_for = ", ".join(self.player(v).name for v, ok in n.votes.items() if ok)
+        voters_against = ", ".join(self.player(v).name for v, ok in n.votes.items() if not ok)
+
+        self.log.append(
+            f"Votes for {self.player(n.target).name}: {n.votes_for} (needed {needed}) → {'EXECUTE' if passes else 'NO EXECUTION'}")
+        self.log.append(f"For: {voters_for or '—'} | Against: {voters_against or '—'}")
         return passes
 
     def execute(self, pid: int):
-        """Dusk execution."""
-        self.player(pid).alive = False
-        self.log.append(f"{self.player(pid).name} is executed at dusk")
+        p = self.player(pid)
+        # allow roles to react to execution
+        if p.role and hasattr(p.role, "on_execution"):
+            p.role.on_execution(self, pid)
+        p.alive = False
+        self.log.append(f"{p.name} is executed at dusk")
+
 
 
