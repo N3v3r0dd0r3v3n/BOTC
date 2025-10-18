@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from math import floor
 from typing import Optional, List
 
 
@@ -35,6 +36,13 @@ class Player:
 
 
 @dataclass
+class Nomination:
+    nominator: int
+    target: int
+    votes_for: int = 0
+    closed: bool = False
+
+@dataclass
 class Game:
     players: List[Player]
     phase: Phase = Phase.SETUP
@@ -43,6 +51,7 @@ class Game:
     log: List[str] = field(default_factory=list)
     rules: Optional[object] = None
     night_order: List[str] = field(default_factory=list)
+    current_nomination: Nomination | None = None
 
     def player(self, pid: int) -> Player:
         return next(p for p in self.players if p.id == pid)
@@ -88,3 +97,38 @@ class Game:
                 self.night += 1
                 self.phase = Phase.NIGHT
         return self.phase
+
+    # --- Voting helpers ---
+    def majority_required(self) -> int:
+        alive = len(self.alive_players())
+        # In BotC you need strictly more than half the living players
+        return floor(alive / 2) + 1
+
+    def start_nomination(self, nominator_id: int, target_id: int):
+        assert self.phase == Phase.DAY
+        assert self.player(nominator_id).alive and self.player(target_id).alive
+        self.current_nomination = Nomination(nominator=nominator_id, target=target_id)
+        self.log.append(f"Nomination: {self.player(nominator_id).name} nominates {self.player(target_id).name}")
+
+    def cast_vote(self, voter_id: int, vote_for: bool):
+        assert self.current_nomination and not self.current_nomination.closed
+        assert self.player(voter_id).alive
+        if vote_for:
+            self.current_nomination.votes_for += 1
+
+    def close_nomination(self) -> bool:
+        """Return True if execution passes."""
+        assert self.current_nomination and not self.current_nomination.closed
+        self.current_nomination.closed = True
+        passes = self.current_nomination.votes_for >= self.majority_required()
+        n = self.current_nomination
+        self.log.append(f"Votes for {self.player(n.target).name}: {n.votes_for} "
+                        f"(needed {self.majority_required()}) → {'EXECUTE' if passes else 'NO EXECUTION'}")
+        return passes
+
+    def execute(self, pid: int):
+        """Dusk execution."""
+        self.player(pid).alive = False
+        self.log.append(f"{self.player(pid).name} is executed at dusk")
+
+

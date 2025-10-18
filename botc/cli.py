@@ -1,4 +1,6 @@
-from botc.model import Game, Player, Phase
+from math import floor
+
+from botc.model import Game, Player, Phase, Nomination
 from botc.rules import Rules
 from botc.roles.imp import Imp
 from botc.roles.slayer import Slayer
@@ -64,13 +66,23 @@ def run():
 
         elif g.phase == Phase.DAY:
             print_state(g, "Day begins")
-            # demo: slayer fires at first other alive player
-            slayer = next((p for p in g.alive_players() if isinstance(p.role, Slayer)), None)
-            if slayer:
-                target = next((p for p in g.alive_players() if p.id != slayer.id), None)
-                if target:
-                    print(f"[DAY] {slayer.name} (Slayer) attempts to slay {target.name}")
-                    slayer.role.slay(g, target.id)
+            # Simple demo: first alive nominates the second alive
+
+            alive = g.alive_players()
+
+            if len(alive) >= 2:
+                nominator = alive[0]
+                target = alive[1]
+                g.start_nomination(nominator.id, target.id)
+
+                # Voting order: everyone alive raises hand except the target (demo choice)
+
+                for voter in g.alive_players():
+                    vote_for = voter.id != target.id  # target abstains in this demo
+                    g.cast_vote(voter.id, vote_for)
+
+                if g.close_nomination():
+                    g.execute(target.id)
             g.step()
 
         elif g.phase == Phase.FINAL_CHECK:

@@ -41,3 +41,17 @@ def test_empath_reports_number():
     em.role.on_night(g)
     assert any("Empath" in line for line in g.log)
 
+
+def test_basic_nomination_executes_on_majority():
+    g = new_game(["A", "B", "C", "D"])
+    # Move to day
+    g.phase = g.phase.DAY
+    # Nominate B by A, votes from A,C,D are for, B abstains
+    g.start_nomination(1, 2)
+    g.cast_vote(1, True)
+    g.cast_vote(2, False)
+    g.cast_vote(3, True)
+    g.cast_vote(4, True)
+    assert g.close_nomination() is True
+    g.execute(2)
+    assert g.player(2).alive is False
