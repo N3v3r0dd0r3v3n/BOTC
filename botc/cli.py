@@ -9,7 +9,7 @@ from botc.scripts import trouble_brewing_script, ROLE_REGISTRY
 DEFAULT_TB_PRIORITY = [
     "Imp", "Slayer", "Fortune Teller", "Empath", "Poisoner",  # Empath now in top 5
     "Scarlet Woman",
-    "Washerwoman", "Investigator", "Librarian", "Chef",
+    "Washer Woman", "Investigator", "Librarian", "Chef",
     "Undertaker", "Monk", "Ravenkeeper",
     "Butler", "Mayor", "Soldier", "Saint", "Virgin", "Drunk", "Recluse", "Baron", "Spy"
 ]

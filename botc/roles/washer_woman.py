@@ -3,8 +3,8 @@ from botc.model import Team, RoleType, Game
 
 
 @register_role
-class Washerwoman:
-    id = "Washerwoman"
+class WasherWoman:
+    id = "Washer Woman"
     team = Team.GOOD
     type = RoleType.TOWNSFOLK
     owner = None

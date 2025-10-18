@@ -9,3 +9,14 @@ from .spy import Spy
 from .butler import Butler
 from .investigator import Investigator
 from .undertaker import Undertaker
+from .monk import Monk
+from .soldier import Soldier
+from .ravenkeeper import Ravenkeeper
+from .washer_woman import WasherWoman
+from .librarian import Librarian
+from .chef import Chef
+from .virgin import Virgin
+from .mayor import Mayor
+from .drunk import Drunk
+from .recluse import Recluse
+from .baron import Baron

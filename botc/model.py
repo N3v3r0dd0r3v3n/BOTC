@@ -65,6 +65,7 @@ class Game:
     current_nomination: Nomination | None = None
     best_nomination: Nomination | None = None  # highest votes this day
     executed_today: Optional[int] = None  # seat id executed (only once per day)
+    night_protected: set[int] = field(default_factory=set)  # cleared at start of each night
     last_executed_pid: int | None = None
 
     def player(self, pid: int) -> Player:
@@ -110,6 +111,7 @@ class Game:
             if not ended:
                 self.night += 1
                 self.phase = Phase.NIGHT
+                self.night_protected.clear()
         return self.phase
 
     # --- Voting helpers ---
@@ -123,6 +125,18 @@ class Game:
         assert self.player(nominator_id).alive and self.player(target_id).alive
         self.current_nomination = Nomination(nominator=nominator_id, target=target_id)
         self.log.append(f"Nomination: {self.player(nominator_id).name} nominates {self.player(target_id).name}")
+
+        # Virgin check
+        target = self.player(target_id)
+        if getattr(target.role, "id", "") == "Virgin" and not self.is_poisoned_like(target_id):
+            nom = self.player(nominator_id)
+            nom_type = getattr(nom.role, "type", None)
+            if nom_type == RoleType.TOWNSFOLK and not self.is_poisoned_like(nominator_id):
+                self.log.append("Virgin ability triggers: immediate execution")
+                self.execute(target_id)  # dusk execution right away
+                self.executed_today = target_id
+                # Close nomination to stop voting
+                self.current_nomination.closed = True
 
     def cast_vote(self, voter_id: int, vote_for: bool):
         assert self.current_nomination and not self.current_nomination.closed
@@ -181,6 +195,10 @@ class Game:
 
     def execute(self, pid: int):
         p = self.player(pid)
+        # Mayor: if would be executed, no one dies instead (simple interpretation)
+        if getattr(p.role, "id", "") == "Mayor":
+            self.log.append("Mayor prevents an execution")
+            return
         if p.role and hasattr(p.role, "on_execution"):
             p.role.on_execution(self, pid)
         self.mark_dead(pid, "at dusk")
@@ -244,11 +262,36 @@ class Game:
         self.execute(n.target)
 
     def is_poisoned(self, pid: int) -> bool:
-        # Any living Poisoner’s current target counts as poisoned
+        # True if any living Poisoner set this pid last night (simple per-night poison)
         for p in self.players:
-            if getattr(p.role, "id", None) == "Poisoner" and p.role.poisoned_pid == pid and p.alive:
-                return True
+            if getattr(p.role, "id", None) == "Poisoner" and p.alive:
+                if getattr(p.role, "poisoned_pid", None) == pid:
+                    return True
         return False
+
+    def is_poisoned_like(self, pid: int) -> bool:
+        """Treat Drunk as 'poisoned' for ability correctness."""
+        player = self.player(pid)
+        return self.is_poisoned(pid) or getattr(player.role, "id", "") == "Drunk"
+
+    def protect(self, pid: int):
+        self.night_protected.add(pid)
+
+    def demon_attack(self, target_pid: int):
+        """Demon attempts to kill target at night."""
+        target = self.player(target_pid)
+        if not target.alive:
+            return
+        # Soldier immunity
+        if getattr(target.role, "id", "") == "Soldier":
+            self.log.append(f"{target.name} (Soldier) resists the demon")
+            return
+        # Monk protection
+        if target_pid in self.night_protected:
+            self.log.append(f"{target.name} is protected from the demon")
+            return
+        # Normal night death
+        self.kill_at_dawn(target_pid)
 
     def current_night_order(self) -> List[str]:
         if self.script:

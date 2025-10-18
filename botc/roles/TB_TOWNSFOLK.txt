@@ -1,13 +1,13 @@
 Done - Washerwoman
-Librarian
+Done - Librarian
 WIP - Investigator
-Chef
+Done - Chef
 Done - Empath
 Done - Fortune Teller
 WIP - Undertaker
-Monk
-Ravenkeeper
-Virgin
+Done - Monk
+Done - Ravenkeeper
+Done - Virgin
 Done - Slayer
-Soldier
-Mayor
+Done - Soldier
+WIP - Mayor
