@@ -2,6 +2,7 @@ from botc.cli import new_game
 from botc.roles.imp import Imp
 from botc.roles.slayer import Slayer
 from botc.roles.fortune_teller import FortuneTeller
+from botc.roles.empath import Empath
 from botc.model import Phase
 
 
@@ -31,3 +32,12 @@ def test_fortune_teller_logs_result():
     ft.role.on_night(g)
     # Should have written a log line about seeing YES/NO
     assert any("sees" in line for line in g.log)
+
+
+def test_empath_reports_number():
+    g = new_game(["Eve", "Sam", "Kim", "Luke"])
+    em = next(p for p in g.players if isinstance(p.role, Empath))
+    g.phase = g.phase.NIGHT
+    em.role.on_night(g)
+    assert any("Empath" in line for line in g.log)
+
