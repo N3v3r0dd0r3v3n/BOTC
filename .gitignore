@@ -1,0 +1,6 @@
+*.pyc
+.idea/
+.pytest_cache/
+.venv/
+python_modules
+htmlcov_from_coveragerc/
