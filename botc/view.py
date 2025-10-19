@@ -1,6 +1,16 @@
 from botc.model import Game
 
 
+def view_for_room(game, room):
+    # implement a safe summary: seats, names, seat numbers, status
+    return {
+        "gid": room.gid,
+        "status": room.info.status,
+        "max_players": room.info.max_players,
+        "seats": room.seat_map(),
+    }
+
+
 def view_for_player(g: Game, player_id: int, room) -> dict:
     """Pre-game + in-game view for a player (id-based), including seat map."""
     you = next((p for p in g.players if p.id == player_id), None)
@@ -18,7 +28,6 @@ def view_for_player(g: Game, player_id: int, room) -> dict:
         "seats": room.seat_map(),  # <-- seat list 1..max with occupants
         "status": room.info.status,  # open | started | finished
     }
-
 
 
 def view_for_seat(g: Game, seat: int) -> dict:

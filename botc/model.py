@@ -50,6 +50,22 @@ class Nomination:
 
 
 @dataclass
+class Seat:
+    number: int
+    player_id: Optional[int] = None
+
+
+@dataclass
+class RoomInfo:
+    gid: str
+    name: str
+    script_name: str
+    max_players: int
+    status: str = "open"  # open | started | finished
+    seats: List[Seat] = None
+
+
+@dataclass
 class Game:
     players: List[Player]
     phase: Phase = Phase.SETUP
@@ -305,4 +321,5 @@ class Game:
             g.assign_role(seat, ROLE_REGISTRY[role_name]())
 
 
-
+# simple in-memory registry
+rooms: Dict[str, RoomInfo] = {}
