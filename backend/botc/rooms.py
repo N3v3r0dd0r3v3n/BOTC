@@ -64,8 +64,6 @@ class GameRoom:
                     return False, "cannot_remove_occupied_seat"
                 self.seats.pop(i)
 
-        # update info / capacity fields
-        self.info.max_players = new_max
         return True, None
 
     def is_full(self) -> bool:
@@ -243,9 +241,9 @@ class GameRoom:
 
     def counts(self) -> dict:
         return {
-            "seated": self.seated_count(),
-            "unseated": self.unseated_count(),
-            "total": len(self.game.players),
+            "seated": "self.seated_count()",
+            "unseated": "self.unseated_count()",
+            "total": "len(self.game.players)",
         }
 
 

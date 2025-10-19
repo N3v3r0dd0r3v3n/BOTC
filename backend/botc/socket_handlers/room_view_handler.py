@@ -18,8 +18,9 @@ class RoomViewerSocket(tornado.websocket.WebSocketHandler):
     def open(self, gid: str):
         room = self.rooms.get(gid)
         if not room:
-            self.write_message(json.dumps({"type":"error","error":"room_not_found"}))
-            self.close(); return
+            self.write_message(json.dumps({"type": "error", "error": "room_not_found"}))
+            self.close()
+            return
         self.room = room
         room.add_room_viewer(self)
         # send initial state
