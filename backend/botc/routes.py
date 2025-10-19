@@ -2,7 +2,6 @@ from tornado.web import url
 from botc.request_handlers.join_room_handler import JoinRoomHandler
 from botc.request_handlers.lobby_handler import LobbyHandler
 from botc.request_handlers.lobby_room_handler import LobbyRoomHandler
-from botc.request_handlers.room_handler import RoomHandler
 from botc.request_handlers.seats_handler import SeatsHandler
 from botc.request_handlers.sit_handler import SitHandler
 from botc.request_handlers.start_room_handler import StartRoomHandler
@@ -12,6 +11,7 @@ from botc.socket_handlers.player_handler import PlayerSocket
 from botc.socket_handlers.room_view_handler import RoomViewerSocket
 from botc.socket_handlers.story_teller_handler import StorytellerSocket
 from botc.rooms import rooms
+
 
 
 def http_routes():

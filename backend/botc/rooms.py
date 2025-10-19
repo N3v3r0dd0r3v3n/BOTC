@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import List, Set, Dict
 
-from botc.domain.room_types import RoomInfo
 from botc.model import RoomInfo
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus

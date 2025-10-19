@@ -1,6 +1,6 @@
 import json
 import tornado
-from typing import Dict, Optional, Set
+from typing import Dict, Optional
 
 from botc.rooms import GameRoom
 from botc.view import view_for_room

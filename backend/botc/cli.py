@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import botc.roles
 from botc.model import Game, Player, Phase
 from botc.prompt import CLIPrompt, AutoPrompt
 from botc.rules import Rules
