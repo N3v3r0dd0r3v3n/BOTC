@@ -1,6 +1,6 @@
 import tornado
 
-from botc.model import rooms
+from botc.rooms import rooms
 
 
 class StepHandler(tornado.web.RequestHandler):

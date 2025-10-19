@@ -23,7 +23,9 @@ class RoomViewerSocket(tornado.websocket.WebSocketHandler):
         self.room = room
         room.add_room_viewer(self)
         # send initial state
-        self.send({"type":"state","view": view_for_room(room.game, room)})
+        initial = view_for_room(room.game, room)
+        initial["unseated"] = room.unseated_players()
+        self.send({"type": "state", "view": initial})
 
     def on_message(self, message):
         # Read-only; ignore

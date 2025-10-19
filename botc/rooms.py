@@ -1,21 +1,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Dict, List, Set
+from typing import List, Set, Dict
 
 from botc.domain.room_types import RoomInfo
+from botc.model import RoomInfo
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus
 from botc.ws.ws_prompt import WsPrompt
-
-from botc.model import RoomInfo
-
-
-class RoomsRegistry(dict[str, RoomInfo]):
-    pass
-
-
-rooms = RoomsRegistry()
 
 
 class GameRoom:
@@ -107,7 +99,6 @@ class GameRoom:
 
     # broadcast helpers
     def _send_to_storyteller(self, payload: dict):
-
         if self.storyteller:
             self.storyteller.send({"type": "state", "view": view_for_storyteller(self.game, self)})
 
@@ -136,7 +127,9 @@ class GameRoom:
 
         # viewers
         if self.room_viewers:
-            room_view = {"type": "state", "view": view_for_room(self.game, self)}
+            view = view_for_room(self.game, self)
+            view["unseated"] = self.unseated_players()
+            room_view = {"type": "state", "view": view}
             gone = []
             for v in list(self.room_viewers):
                 try:
@@ -203,3 +196,22 @@ class GameRoom:
         p.seat = None
         return True, None
 
+    def unseated_players(self) -> list[dict]:
+        return [{"id": p.id, "name": p.name}
+                for p in self.game.players if getattr(p, "seat", None) is None]
+
+    def seated_count(self) -> int:
+        return sum(1 for p in self.game.players if getattr(p, "seat", None) is not None)
+
+    def unseated_count(self) -> int:
+        return sum(1 for p in self.game.players if getattr(p, "seat", None) is None)
+
+    def counts(self) -> dict:
+        return {
+            "seated": self.seated_count(),
+            "unseated": self.unseated_count(),
+            "total": len(self.game.players),
+        }
+
+
+rooms: Dict[str, GameRoom] = {}

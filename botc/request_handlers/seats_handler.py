@@ -1,7 +1,7 @@
 import json
 import tornado
 
-from botc.model import rooms
+from botc.rooms import rooms
 
 
 class SeatsHandler(tornado.web.RequestHandler):
@@ -27,4 +27,9 @@ class SeatsHandler(tornado.web.RequestHandler):
             return
 
         room.broadcast()
-        self.write({"ok": True, "max_players": room.info.max_players, "seats_used": len(room.game.players)})
+        self.write({
+            "ok": True,
+            "max_players": room.info.max_players,
+            "counts": room.counts(),
+            "seat_map": room.seat_map(),  # optional but useful for clients
+        })

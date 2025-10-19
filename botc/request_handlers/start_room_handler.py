@@ -1,7 +1,7 @@
 import json
 import tornado
 
-from botc.model import rooms
+from botc.rooms import rooms
 
 
 class StartRoomHandler(tornado.web.RequestHandler):

@@ -7,22 +7,21 @@ from botc.cli import new_game
 
 from dataclasses import asdict
 
-from botc.model import rooms
-from botc.rooms import GameRoom
+from botc.rooms import GameRoom, rooms
 
 
 class LobbyHandler(tornado.web.RequestHandler):
     def get(self):
         # list rooms
-        rooms = []
-        for room in rooms:
+        payload = []
+        for room in rooms.values():  # <-- iterate the registry
             g = room.game
-            rooms.append({
+            payload.append({
                 **asdict(room.info),
                 "players": [{"id": p.id, "name": p.name, "alive": p.alive} for p in g.players],
                 "seats_used": len(g.players),
             })
-        self.write({"rooms": rooms})
+        self.write({"rooms": payload})
 
     def post(self):
         # create room: {name, script, max_players, names?}
@@ -33,10 +32,10 @@ class LobbyHandler(tornado.web.RequestHandler):
         initial_names = body.get("names") or []  # optional pre-fill seats
 
         gid = uuid.uuid4().hex[:8]
-        # create an empty game (no players yet); your new_game will accept names list
-        g = new_game(initial_names)  # can be [] — players can join later
+        g = new_game(initial_names)  # can be []
         room = GameRoom(gid, g, name, script_name, max_players)
-        rooms[gid] = room
+
+        rooms[gid] = room  # <-- write to the same registry
 
         self.write({
             "gid": gid,

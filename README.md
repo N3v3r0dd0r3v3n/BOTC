@@ -34,17 +34,19 @@ curl -s -X POST http://localhost:8765/api/lobby \
   -H 'Content-Type: application/json' \
   -d '{"name":"Friday BOTC","script":"Trouble Brewing","max_players":10}'
 
+g) Get room details
+wscat -c ws://localhost:8765/ws/<gid>/room
 
-G) Join room unseated
+h) Join room unseated
 curl -s -X POST http://localhost:8765/api/room/<gid>/join -H 'Content-Type: application/json' -d '{"name":"Eve"}'
 
-h) Take seat
+i) Take seat
 curl -s -X POST http://localhost:8765/api/room/236d3b94/sit -H 'Content-Type: application/json' -d '{"player_id":2,"seat":3}'
 
-i) Vacate seat
+j) Vacate seat
 curl -s -X POST http://localhost:8765/api/room/236d3b94/vacate -H 'Content-Type: application/json' -d '{"player_id":2}'
 
-j) Change capacity
+k) Change capacity
 curl -s -X POST http://localhost:8765/api/room/236d3b94/seats -H 'Content-Type: application/json' -d '{"max_players":6}'
 
 

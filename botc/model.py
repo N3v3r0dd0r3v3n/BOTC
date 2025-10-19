@@ -322,4 +322,4 @@ class Game:
 
 
 # simple in-memory registry
-rooms: Dict[str, RoomInfo] = {}
+#rooms: Dict[str, RoomInfo] = {}

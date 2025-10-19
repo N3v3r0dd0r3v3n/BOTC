@@ -2,7 +2,7 @@ import json
 import uuid
 import tornado
 from botc.cli import new_game
-from botc.model import rooms
+from botc.rooms import rooms
 from botc.rooms import GameRoom
 
 
