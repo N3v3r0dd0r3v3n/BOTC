@@ -5,6 +5,9 @@ def view_for_room(game, room):
     # implement a safe summary: seats, names, seat numbers, status
     return {
         "gid": room.gid,
+        "name": room.info.name,
+        "script_name": room.info.script_name,
+        "story_teller": room.info.story_teller,
         "status": room.info.status,
         "max_players": room.info.max_players,
         "seats": room.seat_map(),

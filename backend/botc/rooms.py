@@ -4,16 +4,17 @@ from collections import defaultdict
 from typing import List, Set, Dict
 
 from botc.model import RoomInfo
+from botc.scripts import Script
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus
 from botc.ws.ws_prompt import WsPrompt
 
 
 class GameRoom:
-    def __init__(self, gid: str, game, name: str, script_name: str, max_players: int):
+    def __init__(self, gid: str, game, name: str, script: Script, max_players: int):
         self.gid = gid
         self.game = game
-        self.info = RoomInfo(gid=gid, name=name, script_name=script_name, max_players=max_players)
+        self.info = RoomInfo(gid=gid, name=name, script_name=script.name, max_players=max_players)
         self.bus = PromptBus()
         self.storyteller = None
         self.players = {}
@@ -30,8 +31,10 @@ class GameRoom:
         self.room_viewers.discard(sock)
 
     def update_max_players(self, new_max: int) -> tuple[bool, str | None]:
-        if new_max < 1:
-            return False, "min_seats_is_1"
+        if new_max < 5:
+            return False, "min_seats_is_5"
+        if new_max > 20:
+            return False, "max_seats_is_20"
         current = len(self.game.players)
         if new_max < current:
             # Can't reduce below occupied seats

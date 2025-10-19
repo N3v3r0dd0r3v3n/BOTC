@@ -11,7 +11,8 @@ export const environment = {
     response_type: 'code',
     logout_redirect_uri: 'http://localhost:4200/logout'
   },
-  botc_service_uri: 'http://localhost:8765'
+  botc_service_uri: 'http://localhost:8765/api',
+  botc_service_ws: 'ws://localhost:8765/ws'
 };
 
 /*

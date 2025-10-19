@@ -18,3 +18,21 @@ export interface Room {
 export interface LobbyResponse {
   rooms: Room[];
 }
+
+export interface RoomStateResponse {
+  type: 'state';
+  view: RoomView;
+}
+
+export interface RoomView {
+  gid: string;
+  status: 'open' | 'started' | 'finished';
+  max_players: number;
+  seats: Seat[];
+  unseated: Player[];
+}
+
+export interface Seat {
+  seat: number;
+  occupant: Player | null;
+}

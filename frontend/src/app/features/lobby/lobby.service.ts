@@ -10,7 +10,7 @@ import { LobbyResponse } from "../../models/room.model";
 })
 export class LobbyService {
 
-    private readonly baseUrl = `${environment.botc_service_uri}/api/lobby`;
+    private readonly baseUrl = `${environment.botc_service_uri}/lobby`;
     constructor(private http: HttpClient) { }
 
     httpOptions = {

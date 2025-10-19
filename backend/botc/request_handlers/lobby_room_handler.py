@@ -3,6 +3,8 @@ from botc.rooms import rooms
 
 
 class LobbyRoomHandler(BaseHandler):
+
+    #TODO Why would I ever need this?  Isn't this in the rooms handler?
     def delete(self, gid: str):
         room = rooms.get(gid)
         if not room:

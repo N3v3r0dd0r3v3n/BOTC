@@ -1,10 +1,42 @@
 <h2>Room details</h2>
 
-    <div *ngIf="latest(); else waiting">
-      <pre>{{ latest() | json }}</pre>
-    </div>
-    <ng-template #waiting>
-      <p>Waiting for data...</p>
-    </ng-template>
+<div *ngIf="latest(); else waiting">
+    <pre>Story teller: {{ latest().view.story_teller }}</pre>
+    <pre>Script: {{ latest().view.script_name }}</pre>
+    <pre>Status: {{ latest().view.status }}</pre>
+    <pre>Maximum players: {{ latest().view.max_players }}</pre>
+    <pre>Seats</pre>
+    <span *ngFor="let seat of latest().view.seats">
+        <div>
+            {{seat.seat}}
+            @if (seat.occupant) {
+                {{ seat.occupant.name }}
+            } @else {
+                Empty
+            }
 
-    <button (click)="sendPing()">Send ping</button>
+        </div>
+    </span>
+
+    <pre>Spectators</pre>
+
+    <span *ngFor="let spec of latest().view.unseated">
+        {{ spec.name }}
+    </span>
+
+
+
+    <pre>{{ latest() | json }}</pre>
+
+
+
+
+
+
+
+</div>
+<ng-template #waiting>
+    <p>Waiting for data...</p>
+</ng-template>
+
+<button (click)="sendPing()">Send ping</button>

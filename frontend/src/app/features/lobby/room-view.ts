@@ -1,45 +1,41 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
-import { JsonPipe, AsyncPipe } from '@angular/common';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { RoomSocketService } from './room-socket.service';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, Signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { map } from 'rxjs';
+import { RoomSocketService } from './room-socket.service';
 
 @Component({
-  selector: 'app-room-view',
   standalone: true,
-  imports: [JsonPipe, AsyncPipe, CommonModule],
+  selector: 'app-room-view',
+  imports: [CommonModule],
   templateUrl: './room-view.html',
-  styleUrl: './room-view.css'
+  styleUrl: './room-view.css',
+  // Component-scoped instance so it dies with the page
+  providers: [RoomSocketService]
 })
-export class RoomViewComponent {
-  latest = signal<any | null>(null);
-
-  private readonly url = 'ws://localhost:8765/ws/0c4f65aa/room';
-  private route = inject(ActivatedRoute);
-
-  // Convert the paramMap observable into a signal
-  gid = toSignal(this.route.paramMap.pipe(
-    map(params => params.get('gid')!)
-  ));
+export class RoomViewComponent implements OnInit {
+  public latest!: Signal<any | null>;
 
   constructor(
-    private sockets: RoomSocketService,
-    private destroyRef: DestroyRef
+    private readonly sockets: RoomSocketService,
+    private readonly route: ActivatedRoute
   ) {
-    this.sockets
-      .connect(this.url)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: msg => this.latest.set(msg),
-        error: err => console.error('stream error', err),
-        complete: () => console.log('stream complete'),
-      });
+    this.latest = this.sockets.latest;
   }
 
-  sendPing() {
-    // Optional - only if your server supports client messages
+  async ngOnInit(): Promise<void> {
+    const gid = this.route.snapshot.paramMap.get('gid') ?? '';
+    if (!gid) {
+      console.error('No gid in route');
+      return;
+    }
+    try {
+      await this.sockets.connect(gid);
+    } catch (err) {
+      console.error('Failed to open room socket:', err);
+    }
+  }
+
+  sendPing(): void {
     this.sockets.send({ type: 'ping', t: Date.now() });
   }
 }
