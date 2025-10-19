@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import List, Set, Dict
 
-from botc.model import RoomInfo
+from botc.model import RoomInfo, Player, Spectator
 from botc.scripts import Script
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus
@@ -11,18 +11,24 @@ from botc.ws.ws_prompt import WsPrompt
 
 
 class GameRoom:
-    def __init__(self, gid: str, game, name: str, script: Script, max_players: int):
-        self.gid = gid
-        self.game = game
-        self.info = RoomInfo(gid=gid, name=name, script_name=script.name, max_players=max_players)
+    def __init__(self, gid: str, name: str, script: Script, initial_seat_count: int = 5):
+        self.min_residents = 5
+        self.max_residents = 20
+        self.script = script
+        self.info = RoomInfo(gid=gid, name=name, script_name=script.name)
         self.bus = PromptBus()
         self.storyteller = None
-        self.players = {}
+        self.spectators: List[Spectator] = []
+        self.seats = [{"seat": i + 1, "occupant": None} for i in range(initial_seat_count)]
+        self.game = None
         # install WsPrompt
-        self.game.prompt = WsPrompt(self._send_to_storyteller, self.bus)
+        """
+        if self.game is not None:
+            self.game.prompt = WsPrompt(self._send_to_storyteller, self.bus)
+        """
 
-        self.room_viewers: Set["RoomViewerSocket"] = set()  # 👈 NEW: anonymous viewers
-        self.player_sockets = defaultdict(set)  # (from earlier patch)
+        self.room_viewers: Set["RoomViewerSocket"] = set()
+        self.player_sockets = defaultdict(set)
 
     def add_room_viewer(self, sock):
         self.room_viewers.add(sock)
@@ -30,15 +36,35 @@ class GameRoom:
     def remove_room_viewer(self, sock):
         self.room_viewers.discard(sock)
 
-    def update_max_players(self, new_max: int) -> tuple[bool, str | None]:
-        if new_max < 5:
+    def update_max_seats(self, new_max: int) -> tuple[bool, str | None]:
+        if new_max < self.min_residents:
             return False, "min_seats_is_5"
-        if new_max > 20:
+        if new_max > self.max_residents:
             return False, "max_seats_is_20"
-        current = len(self.game.players)
-        if new_max < current:
-            # Can't reduce below occupied seats
-            return False, "cannot_reduce_below_current_player_count"
+
+        # how many seats currently occupied
+        occupied = sum(1 for s in self.seats if s["occupant"] is not None)
+
+        if new_max < occupied:
+            return False, "cannot_reduce_below_occupied_seats"
+
+        current = len(self.seats)
+
+        # grow
+        if new_max > current:
+            for i in range(current, new_max):
+                self.seats.append({"seat": i + 1, "occupant": None})
+
+        # shrink (safe only if unoccupied seats exist at the end)
+        elif new_max < current:
+            # remove only from the end if empty
+            for i in range(current - 1, new_max - 1, -1):
+                seat = self.seats[i]
+                if seat["occupant"] is not None:
+                    return False, "cannot_remove_occupied_seat"
+                self.seats.pop(i)
+
+        # update info / capacity fields
         self.info.max_players = new_max
         return True, None
 
@@ -67,9 +93,6 @@ class GameRoom:
         # normalize players by seat order 1..N
         seated = sorted([p for p in self.game.players if p.seat is not None], key=lambda p: p.seat)
         # reassign ids 1..N for engine consistency (optional, but tidy)
-        #for i, p in enumerate(seated, start=1):
-        #    p.id = i
-        #self.game.players = seated
         self.game.players = seated
 
         n = len(self.game.players)
@@ -100,9 +123,16 @@ class GameRoom:
         return True
 
     # broadcast helpers
+
     def _send_to_storyteller(self, payload: dict):
         if self.storyteller:
             self.storyteller.send({"type": "state", "view": view_for_storyteller(self.game, self)})
+    """
+    def _send_to_storyteller(self, payload: dict):
+        if self.storyteller:
+            # send the prompt (or whatever payload) as-is
+            self.storyteller.send(payload)
+    """
 
     def broadcast(self):
         # players
@@ -130,7 +160,7 @@ class GameRoom:
         # viewers
         if self.room_viewers:
             view = view_for_room(self.game, self)
-            view["unseated"] = self.unseated_players()
+            #view["unseated"] = self.unseated_players()
             room_view = {"type": "state", "view": view}
             gone = []
             for v in list(self.room_viewers):
@@ -150,8 +180,9 @@ class GameRoom:
     def seats_used(self) -> int:
         return sum(1 for p in self.game.players if p.seat is not None)
 
+    """
     def seat_map(self) -> list[dict]:
-        """Return seat list 1..max_players with occupant info (or None)."""
+        #Return seat list 1..max_players with occupant info (or None).
         seats = []
         for n in range(1, self.info.max_players + 1):
             occ = next((p for p in self.game.players if p.seat == n), None)
@@ -160,6 +191,7 @@ class GameRoom:
                 "occupant": None if not occ else {"id": occ.id, "name": occ.name}
             })
         return seats
+    """
 
     def player_by_id(self, pid: int):
         return next((p for p in self.game.players if p.id == pid), None)
@@ -168,12 +200,11 @@ class GameRoom:
         """Add a player record with no seat yet."""
         if self.info.status != "open":
             return None
-        # Generate a new player id (unique, independent from seat numbers)
-        new_id = (max([p.id for p in self.game.players] or [0]) + 1)
-        from botc.model import Player
-        p = Player(id=new_id, name=player_name, seat=None)
-        self.game.players.append(p)
-        return {"id": p.id, "name": p.name, "seat": p.seat}
+
+        new_id = (max([s.id for s in self.spectators] or [0]) + 1)
+        spectator = Spectator(id=new_id, name=player_name)
+        self.spectators.append(spectator)
+        return {"id": spectator.id, "name": spectator.name}
 
     def sit(self, pid: int, seat_no: int) -> tuple[bool, str | None]:
         if self.info.status != "open":
@@ -198,9 +229,11 @@ class GameRoom:
         p.seat = None
         return True, None
 
+    """
     def unseated_players(self) -> list[dict]:
         return [{"id": p.id, "name": p.name}
                 for p in self.game.players if getattr(p, "seat", None) is None]
+    """
 
     def seated_count(self) -> int:
         return sum(1 for p in self.game.players if getattr(p, "seat", None) is not None)

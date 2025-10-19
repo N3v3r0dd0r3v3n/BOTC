@@ -3,7 +3,7 @@ from __future__ import annotations
 from botc.model import Game, Player, Phase
 from botc.prompt import CLIPrompt, AutoPrompt
 from botc.rules import Rules
-from botc.scripts import trouble_brewing_script, ROLE_REGISTRY
+from botc.scripts import trouble_brewing_script, ROLE_REGISTRY, Script
 
 DEFAULT_TB_PRIORITY = [
     "Imp", "Slayer", "Fortune Teller", "Empath", "Poisoner",  # Empath now in top 5
@@ -27,10 +27,10 @@ def default_roles_for(n: int) -> list[str]:
     return implemented[:n]
 
 
-def new_game(names: list[str], role_names: list[str] | None = None) -> Game:
+def new_game(names: list[str], script: Script, role_names: list[str] | None = None) -> Game:
     players = [Player(id=i + 1, name=n, seat=i + 1) for i, n in enumerate(names)]
     g = Game(players=players, rules=Rules())
-    g.script = trouble_brewing_script()
+    g.script = script
 
     # Back-compat for existing tests
     if role_names is None and len(players) == 3:

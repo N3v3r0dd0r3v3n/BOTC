@@ -11,15 +11,15 @@ class JoinRoomHandler(BaseHandler):
             self.write({"error": "room_not_found"})
             return
         body = json.loads(self.request.body or b"{}")
-        player_name = body.get("name")
-        if not player_name:
+        spectator_name = body.get("name")
+        if not spectator_name:
             self.set_status(400)
             self.write({"error": "missing_name"})
             return
-        seat = room.join_unseated(player_name)
-        if not seat:
+        spectator = room.join_unseated(spectator_name)
+        if not spectator:
             self.set_status(409)
             self.write({"error": "room_not_open"})
             return
         room.broadcast()
-        self.write({"ok": True, "player": seat, "max_players": room.info.max_players})
+        self.write({"ok": True, "spectator": spectator, "total_spectators": len(room.spectators)})

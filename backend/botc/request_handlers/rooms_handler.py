@@ -11,24 +11,24 @@ from botc.scripts import trouble_brewing_script
 
 class RoomsHandler(BaseHandler):
     def post(self):
-        # create room: {name, script, max_players}
+        # create room: {name, script, initial_seat_count}
         body = json.loads(self.request.body or b"{}")
         room_name = body.get("name") or "Untitled Room"
         # For now default to trouble brewing
         script = trouble_brewing_script()
-        max_players = int(body.get("max_players") or 8)
-
-        initial_names = body.get("names") or []  # optional pre-fill seats
-
+        seat_count = int(body.get("seat_count") or 8)
         gid = uuid.uuid4().hex[:8]
         # TODO Do I actually want to create a game right now?
-        g = new_game(initial_names)  # can be []
-        room = GameRoom(gid, g, room_name, script, max_players)
+        #g = new_game(initial_names)  # can be []
+        room = GameRoom(gid, room_name, script, seat_count)
 
         rooms[gid] = room  # <-- write to the same registry
+
+        print(rooms)
 
         self.write({
             "gid": gid,
             "room": asdict(room.info),
-            "seats": [{"id": p.id, "name": p.name} for p in g.players],
+            "seats": room.seats,
+            #"seats": [{"seat": s.seat, "occupant": s.occupant} for s in room.seats],
         })

@@ -31,6 +31,12 @@ class Phase(Enum):
 
 
 @dataclass
+class Spectator:
+    id: int
+    name: str
+
+
+@dataclass
 class Player:
     id: int
     name: str
@@ -60,10 +66,8 @@ class RoomInfo:
     gid: str
     name: str
     script_name: str
-    max_players: int
     story_teller: str = "Mr S Teller"
     status: str = "open"  # open | started | finished
-    seats: List[Seat] = None
 
 
 @dataclass
