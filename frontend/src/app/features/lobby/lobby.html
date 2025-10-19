@@ -1,1 +1,10 @@
-{{rooms() | json}}
+<ul>
+  <li *ngFor="let r of rooms()">
+    <a [routerLink]="['/room', r.gid]">
+      {{ r.name }} — details
+    </a>
+  </li>
+</ul>
+
+<!-- Keep your JSON dump if you like -->
+<pre>{{ rooms | json }}</pre>

@@ -1,0 +1,10 @@
+<h2>Room details</h2>
+
+    <div *ngIf="latest(); else waiting">
+      <pre>{{ latest() | json }}</pre>
+    </div>
+    <ng-template #waiting>
+      <p>Waiting for data...</p>
+    </ng-template>
+
+    <button (click)="sendPing()">Send ping</button>
