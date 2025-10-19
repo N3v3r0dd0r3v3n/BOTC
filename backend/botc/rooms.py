@@ -8,6 +8,7 @@ from botc.scripts import Script
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus
 from botc.model import Player
+from botc.model import Spectator
 from botc.ws.ws_prompt import WsPrompt
 
 
@@ -241,20 +242,43 @@ class GameRoom:
 
         return True, None
 
-    def vacate(self, pid: int) -> tuple[bool, str | None]:
+    def vacate(self, pid: int, seat_no: int) -> tuple[bool, str | None]:
+
         if self.info.status != "open":
             return False, "room_not_open"
-        p = self.player_by_id(pid)
-        if not p:
-            return False, "player_not_found"
-        p.seat = None
-        return True, None
 
-    """
-    def unseated_players(self) -> list[dict]:
-        return [{"id": p.id, "name": p.name}
-                for p in self.game.players if getattr(p, "seat", None) is None]
-    """
+        if not (1 <= seat_no <= len(self.seats)):
+            return False, "invalid_seat"
+
+        seat = self.seats[seat_no - 1]
+        occ = seat["occupant"]  # expected to be a Player or None
+
+        if occ is None:
+            return False, "seat_empty"
+
+        if occ.id != pid:
+            return False, "seat_not_occupied_by_player"
+
+        # find the player object in room.players (if you keep full Player objects there)
+        player = next((p for p in getattr(self, "players", []) if p.id == pid), None)
+        if player is None:
+            # if players list missing the object, use the occupant instance
+            player = occ
+
+        # clear the seat
+        seat["occupant"] = None
+        if hasattr(player, "seat"):
+            player.seat = None
+
+        # move to spectators
+        spec = Spectator(id=player.id, name=player.name)
+        self.spectators.append(spec)
+
+        # remove from players list if present
+        if hasattr(self, "players"):
+            self.players = [p for p in self.players if p.id != pid]
+
+        return True, None
 
     def seated_count(self) -> int:
         return sum(1 for p in self.game.players if getattr(p, "seat", None) is not None)
