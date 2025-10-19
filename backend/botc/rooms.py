@@ -210,6 +210,39 @@ class GameRoom:
         self.spectators.append(spectator)
         return {"id": spectator.id, "name": spectator.name}
 
+    def leave(self, player_id: int) -> tuple[bool, str | None]:
+        spec_idx = next((i for i, s in enumerate(self.spectators) if s.id == player_id), None)
+        if spec_idx is not None:
+            self.spectators.pop(spec_idx)
+            return True, None
+
+        player = next((p for p in getattr(self, "players", []) if p.id == player_id), None)
+        if player is None:
+            # As a safety net, if seats store full Player objects, check seats directly
+            occ_seat_idx = next((i for i, s in enumerate(self.seats)
+                                 if s["occupant"] is not None
+                                 and getattr(s["occupant"], "id", None) == player_id), None)
+            if occ_seat_idx is None:
+                return False, "not_in_room"
+            # Recover the player object from the seat
+            player = self.seats[occ_seat_idx]["occupant"]
+
+        #If seated, clear the seat
+        seat_no = getattr(player, "seat", None)
+        if seat_no is not None:
+            if 1 <= seat_no <= len(self.seats):
+                seat = self.seats[seat_no - 1]
+                # Only clear if the occupant is this player
+                if seat["occupant"] is not None and getattr(seat["occupant"], "id", None) == player.id:
+                    seat["occupant"] = None
+            player.seat = None
+
+        #Remove from players list if present
+        if hasattr(self, "players"):
+            self.players = [p for p in self.players if p.id != player_id]
+
+        return True, None
+
     def sit(self, sid: int, seat_no: int) -> tuple[bool, str | None]:
         if self.info.status != "open":
             return False, "room_not_open"

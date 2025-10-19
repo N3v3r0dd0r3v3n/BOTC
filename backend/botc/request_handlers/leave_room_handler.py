@@ -1,0 +1,29 @@
+import json
+from botc.request_handlers.base_handler import BaseHandler
+from botc.rooms import rooms
+
+
+class LeaveRoomHandler(BaseHandler):
+    def post(self, gid: str):
+        room = rooms.get(gid)
+        if not room:
+            self.set_status(404)
+            self.write({"error": "room_not_found"})
+            return
+
+        body = json.loads(self.request.body or b"{}")
+        try:
+            pid = int(body.get("id") or body.get("player_id") or body.get("spectator_id"))
+        except (TypeError, ValueError):
+            self.set_status(400)
+            self.write({"error": "invalid_payload"})
+            return
+
+        ok, err = room.leave(pid)
+        if not ok:
+            self.set_status(409)
+            self.write({"error": err})
+            return
+
+        room.broadcast()
+        self.write({"ok": True})
