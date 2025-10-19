@@ -1,10 +1,9 @@
 import json
-import tornado
-
+from botc.request_handlers.base_handler import BaseHandler
 from botc.rooms import rooms
 
 
-class SeatsHandler(tornado.web.RequestHandler):
+class SeatsHandler(BaseHandler):
     def post(self, gid: str):
         # For idempotency, use POST with {"max_players": N}; you could use PATCH too.
         room = rooms.get(gid)

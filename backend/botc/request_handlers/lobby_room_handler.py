@@ -1,9 +1,8 @@
-import tornado
-
+from botc.request_handlers.base_handler import BaseHandler
 from botc.rooms import rooms
 
 
-class LobbyRoomHandler(tornado.web.RequestHandler):
+class LobbyRoomHandler(BaseHandler):
     def delete(self, gid: str):
         room = rooms.get(gid)
         if not room:

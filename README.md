@@ -1,5 +1,19 @@
+Frontend
+node -v
+npm i -g @angular/cli@20
+
+
+
+# Install Angular CLI 20.x
+npm i -g @angular/cli@20
+
+
+Backend
+
+cd /Users/amb/Documents/git/BOTC/backend
 python3 -m venv .venv
 source .venv/bin/activate
+export PYTHONPATH=$(pwd)
 
 A) Start server
 python -m botc.server

@@ -1,9 +1,8 @@
-import tornado
-
+from botc.request_handlers.base_handler import BaseHandler
 from botc.rooms import rooms
 
 
-class StepHandler(tornado.web.RequestHandler):
+class StepHandler(BaseHandler):
     def post(self, gid: str):
         room = rooms.get(gid)
         if not room:

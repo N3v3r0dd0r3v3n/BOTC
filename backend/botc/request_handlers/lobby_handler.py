@@ -1,16 +1,13 @@
 import json
 import uuid
 
-import tornado
-
 from botc.cli import new_game
-
 from dataclasses import asdict
-
+from botc.request_handlers.base_handler import BaseHandler
 from botc.rooms import GameRoom, rooms
 
 
-class LobbyHandler(tornado.web.RequestHandler):
+class LobbyHandler(BaseHandler):
     def get(self):
         # list rooms
         payload = []

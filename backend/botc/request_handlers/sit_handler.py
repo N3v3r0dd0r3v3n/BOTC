@@ -1,10 +1,10 @@
 import json
-import tornado
 
+from botc.request_handlers.base_handler import BaseHandler
 from botc.rooms import rooms
 
 
-class SitHandler(tornado.web.RequestHandler):
+class SitHandler(BaseHandler):
     def post(self, gid: str):
         room = rooms.get(gid)
         if not room:

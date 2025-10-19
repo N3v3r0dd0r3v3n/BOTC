@@ -1,12 +1,12 @@
 import json
 import uuid
-import tornado
 from botc.cli import new_game
+from botc.request_handlers.base_handler import BaseHandler
 from botc.rooms import rooms
 from botc.rooms import GameRoom
 
 
-class RoomHandler(tornado.web.RequestHandler):
+class RoomHandler(BaseHandler):
     def post(self):
         # Create a new game/room
         body = json.loads(self.request.body or b"{}")
