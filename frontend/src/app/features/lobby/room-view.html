@@ -1,6 +1,7 @@
 <h2>Room details</h2>
 
 <div *ngIf="latest(); else waiting">
+    <pre>Room: {{ latest().view.room.name }}</pre>
     <pre>Story teller: {{ latest().view.room.story_teller }}</pre>
     <pre>Script: {{ latest().view.room.script_name }}</pre>
     <pre>Status: {{ latest().view.room.status }}</pre>
@@ -12,6 +13,10 @@
                 {{ seat.occupant.name }}
             } @else {
                 Empty
+            }
+
+            @if (latest().view.seats.length > 5) {
+                (delete seat)
             }
 
         </div>

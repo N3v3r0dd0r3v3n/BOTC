@@ -7,18 +7,20 @@ from botc.model import RoomInfo, Player, Spectator
 from botc.scripts import Script
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus
+from botc.model import Player
 from botc.ws.ws_prompt import WsPrompt
 
 
 class GameRoom:
-    def __init__(self, gid: str, name: str, script: Script, initial_seat_count: int = 5):
+    def __init__(self, gid: str, name: str, script: Script, story_teller: str, initial_seat_count: int = 5):
         self.min_residents = 5
         self.max_residents = 20
         self.script = script
-        self.info = RoomInfo(gid=gid, name=name, script_name=script.name)
+        self.info = RoomInfo(gid=gid, name=name, script_name=script.name, story_teller=story_teller)
         self.bus = PromptBus()
         self.storyteller = None
         self.spectators: List[Spectator] = []
+        self.players: List[Player] = []
         self.seats = [{"seat": i + 1, "occupant": None} for i in range(initial_seat_count)]
         self.game = None
         # install WsPrompt
@@ -194,6 +196,9 @@ class GameRoom:
     def player_by_id(self, pid: int):
         return next((p for p in self.game.players if p.id == pid), None)
 
+    def spectator_by_id(self, sid: int):
+        return next((s for s in self.spectators if s.id == sid), None)
+
     def join_unseated(self, player_name: str) -> dict | None:
         """Add a player record with no seat yet."""
         if self.info.status != "open":
@@ -204,18 +209,36 @@ class GameRoom:
         self.spectators.append(spectator)
         return {"id": spectator.id, "name": spectator.name}
 
-    def sit(self, pid: int, seat_no: int) -> tuple[bool, str | None]:
+    def sit(self, sid: int, seat_no: int) -> tuple[bool, str | None]:
         if self.info.status != "open":
             return False, "room_not_open"
-        if not (1 <= seat_no <= self.info.max_players):
+
+        if not (1 <= seat_no <= len(self.seats)):
             return False, "invalid_seat"
-        p = self.player_by_id(pid)
-        if not p:
-            return False, "player_not_found"
-        # seat must be empty
-        if any(x.seat == seat_no for x in self.game.players):
+
+        # find spectator
+        spectator = next((s for s in self.spectators if s.id == sid), None)
+        if not spectator:
+            return False, "spectator_not_found"
+
+        seat = self.seats[seat_no - 1]
+        if seat["occupant"] is not None:
             return False, "seat_occupied"
-        p.seat = seat_no
+
+        # create Player and occupy the seat
+
+        player = Player(id=spectator.id, name=spectator.name, seat=seat_no)
+
+        seat["occupant"] = player
+
+        # remove from spectators
+        self.spectators = [s for s in self.spectators if s.id != sid]
+
+        # ensure self.players exists
+        if not hasattr(self, "players"):
+            self.players = []
+        self.players.append(player)
+
         return True, None
 
     def vacate(self, pid: int) -> tuple[bool, str | None]:
@@ -244,6 +267,32 @@ class GameRoom:
             "seated": "self.seated_count()",
             "unseated": "self.unseated_count()",
             "total": "len(self.game.players)",
+        }
+
+    def as_dict(self) -> dict:
+        """Return a JSON-safe representation of this room."""
+        return {
+            "gid": self.gid,
+            "name": self.info.name,
+            "script_name": self.info.script_name,
+            "status": self.info.status,
+            "spectators": [
+                {"id": s.id, "name": s.name} for s in self.spectators
+            ],
+            "seats": [
+                {
+                    "seat": s["seat"],
+                    "occupant": (
+                        None if s["occupant"] is None
+                        else {
+                            "id": s["occupant"].id,
+                            "name": s["occupant"].name,
+                            "seat": s["occupant"].seat,
+                        }
+                    ),
+                }
+                for s in self.seats
+            ],
         }
 
 

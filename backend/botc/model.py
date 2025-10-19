@@ -66,7 +66,7 @@ class RoomInfo:
     gid: str
     name: str
     script_name: str
-    story_teller: str = "Mr S Teller"
+    story_teller: str
     status: str = "open"  # open | started | finished
 
 

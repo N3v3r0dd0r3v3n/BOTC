@@ -20,7 +20,8 @@ class RoomsHandler(BaseHandler):
         gid = uuid.uuid4().hex[:8]
         # TODO Do I actually want to create a game right now?
         #g = new_game(initial_names)  # can be []
-        room = GameRoom(gid, room_name, script, seat_count)
+        story_teller = "Mr S Teller"
+        room = GameRoom(gid, room_name, script, story_teller, seat_count)
 
         rooms[gid] = room  # <-- write to the same registry
 

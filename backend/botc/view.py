@@ -4,10 +4,23 @@ from botc.model import Game
 
 
 def view_for_room(game, room):
-    # implement a safe summary: seats, names, seat numbers, status
+    seats_view = [
+        {
+            "seat": s["seat"],
+            "occupant": (
+                None if s["occupant"] is None
+                else {
+                    "id": s["occupant"].id,
+                    "name": s["occupant"].name,
+                    "seat": s["occupant"].seat,
+                }
+            ),
+        }
+        for s in room.seats
+    ]
     return {
         "room": asdict(room.info),
-        "seats": room.seats,
+        "seats": seats_view,
         "spectators": [{"id": s.id, "name": s.name} for s in room.spectators],
     }
 
