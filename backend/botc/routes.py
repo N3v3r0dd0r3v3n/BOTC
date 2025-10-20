@@ -20,12 +20,12 @@ def http_routes():
         url(r"/api/lobby", LobbyHandler, name="lobby"),
         url(r"/api/lobby/(.+)", LobbyRoomHandler, name="lobby-room"),
         url(r"/api/rooms", RoomsHandler, name="lobby-rooms"),
-        url(r"/api/room/(.+)/join", JoinRoomHandler, name="room-join"),
-        url(r"/api/room/(.+)/leave", LeaveRoomHandler, name="room-join"),
+        url(r"/api/rooms/(.+)/join", JoinRoomHandler, name="room-join"),
+        url(r"/api/rooms/(.+)/leave", LeaveRoomHandler, name="room-leave"),
         url(r"/api/room/(.+)/start", StartRoomHandler, name="room-start"),
-        url(r"/api/room/(.+)/seats", SeatsHandler, name="room-seats"),
-        url(r"/api/room/(.+)/sit", SitHandler, name="room-sit"),
-        url(r"/api/room/(.+)/vacate", VacateHandler, name="room-vacate"),
+        url(r"/api/rooms/(.+)/seats", SeatsHandler, name="room-seats"),
+        url(r"/api/rooms/(.+)/sit", SitHandler, name="room-sit"),
+        url(r"/api/rooms/(.+)/vacate", VacateHandler, name="room-vacate"),
         url(r"/api/room/(.+)/step", StepHandler, name="room-step"),
     ]
 

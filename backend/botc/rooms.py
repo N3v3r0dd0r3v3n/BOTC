@@ -13,13 +13,19 @@ from botc.ws.ws_prompt import WsPrompt
 
 
 class GameRoom:
-    def __init__(self, gid: str, name: str, script: Script, story_teller: str, initial_seat_count: int = 5):
+    def __init__(self, gid: str, name: str, script: Script, creator, initial_seat_count: int = 5):
         self.min_residents = 5
         self.max_residents = 20
         self.script = script
-        self.info = RoomInfo(gid=gid, name=name, script_name=script.name, story_teller=story_teller)
+        story_teller = creator['name'] or "Fuck me"
+        self.info = RoomInfo(
+            gid=gid,
+            name=name,
+            script_name=script.name,
+            story_teller_name=creator['name'],
+            story_teller_id=creator['id'])
         self.bus = PromptBus()
-        self.storyteller = None
+        self.abusive = "Wank me off"
         self.spectators: List[Spectator] = []
         self.players: List[Player] = []
         self.seats = [{"seat": i + 1, "occupant": None} for i in range(initial_seat_count)]
@@ -152,11 +158,13 @@ class GameRoom:
                 del self.player_sockets[pid]
 
         # storyteller
+        """
         if self.storyteller:
             try:
                 self.storyteller.send({"type": "state", "view": view_for_storyteller(self.game, self)})
             except Exception:
                 self.storyteller = None
+        """
 
         # viewers
         if self.room_viewers:
@@ -200,15 +208,29 @@ class GameRoom:
     def spectator_by_id(self, sid: int):
         return next((s for s in self.spectators if s.id == sid), None)
 
-    def join_unseated(self, player_name: str) -> dict | None:
+    def is_storyteller(self, stid: int) -> bool:
+        return stid == self.info.story_teller_id
+
+    def is_spectator(self, sid: int) -> bool:
+        return self.spectator_by_id(sid) is not None
+
+    def is_player(self, pid: int) -> bool:
+        if self.game and self.game.players:
+            return self.player_by_id(pid) is not None
+        else:
+            return False
+
+    def join_unseated(self, spectator_id, spectator_name: str) -> dict | None:
         """Add a player record with no seat yet."""
         if self.info.status != "open":
             return None
 
-        new_id = (max([s.id for s in self.spectators] or [0]) + 1)
-        spectator = Spectator(id=new_id, name=player_name)
-        self.spectators.append(spectator)
-        return {"id": spectator.id, "name": spectator.name}
+        if not self.is_storyteller(stid=spectator_id) \
+                and not self.is_spectator(sid=spectator_id) \
+                and not self.is_player(pid=spectator_id):
+            spectator = Spectator(id=spectator_id, name=spectator_name)
+            self.spectators.append(spectator)
+        return {"id": spectator_id, "name": spectator_name}
 
     def leave(self, player_id: int) -> tuple[bool, str | None]:
         spec_idx = next((i for i, s in enumerate(self.spectators) if s.id == player_id), None)

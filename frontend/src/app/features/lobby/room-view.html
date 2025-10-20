@@ -1,26 +1,44 @@
 <h2>Room details</h2>
 
 <div *ngIf="latest(); else waiting">
+
+    <button type="submit" (click)="leave()">Leave</button>
+
+    @if (isStoryTeller()) {
+        <h4>You are the storyteller!!!!</h4>
+    }
+
     <pre>Room: {{ latest().view.room.name }}</pre>
-    <pre>Story teller: {{ latest().view.room.story_teller }}</pre>
+    <pre>Story teller: {{ latest().view.room.story_teller_name }}</pre>
     <pre>Script: {{ latest().view.room.script_name }}</pre>
     <pre>Status: {{ latest().view.room.status }}</pre>
     <pre>Seats</pre>
+
     <span *ngFor="let seat of latest().view.seats">
         <div>
             {{seat.seat}}
             @if (seat.occupant) {
                 {{ seat.occupant.name }}
+                @if (isMySeat(seat)) {
+                    <span><button type="submit" (click)="vacate(seat.seat)">Vacate chair</button></span>
+                }
             } @else {
                 Empty
-            }
-
-            @if (latest().view.seats.length > 5) {
-                (delete seat)
-            }
-
+                @if (!isStoryTeller() && !isSeated) {
+                    <span><button type="submit" (click)="sit(seat.seat)">Take chair</button></span>
+                }
+            }  
         </div>
     </span>
+
+    @if (isStoryTeller()) {
+        @if (getSeats().length < 20) {
+            <button type="submit" (click)="addChair()">Add Chair</button>
+        }
+        @if (getSeats().length > 5) {
+            <button type="submit" (click)="removeChair()">Remove Chair</button>
+        }
+    }
 
     <pre>Spectators</pre>
 

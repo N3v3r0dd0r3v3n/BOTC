@@ -12,7 +12,7 @@ class VacateHandler(BaseHandler):
             return
         body = json.loads(self.request.body or b"{}")
         try:
-            player_id = int(body.get("player_id"))
+            player_id = body.get("player_id")
             seat = int(body.get("seat"))
         except (TypeError, ValueError):
             self.set_status(400)

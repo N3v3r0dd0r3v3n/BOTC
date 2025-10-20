@@ -15,7 +15,7 @@ class SitHandler(BaseHandler):
         body = json.loads(self.request.body or b"{}")
         try:
             # prefer spectator_id, fall back to player_id for legacy callers
-            spectator_id = int(body.get("spectator_id") or body.get("player_id"))
+            spectator_id = body.get("spectator_id") or body.get("player_id")
             seat_no = int(body.get("seat"))
         except (TypeError, ValueError):
             self.set_status(400)

@@ -13,7 +13,7 @@ class LeaveRoomHandler(BaseHandler):
 
         body = json.loads(self.request.body or b"{}")
         try:
-            pid = int(body.get("id") or body.get("player_id") or body.get("spectator_id"))
+            pid = body.get("player_id")
         except (TypeError, ValueError):
             self.set_status(400)
             self.write({"error": "invalid_payload"})

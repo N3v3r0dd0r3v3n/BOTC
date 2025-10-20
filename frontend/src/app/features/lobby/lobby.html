@@ -1,8 +1,10 @@
+<button (click)="createRoom()">Create Room</button>
+
 <ul>
   <li *ngFor="let r of rooms()">
     <a [routerLink]="['/room', r.gid]">
-      {{ r.name }} {{r.status}}
-    </a>
+      {{ r.name }} 
+    </a> {{r.status}}
   </li>
 </ul>
 

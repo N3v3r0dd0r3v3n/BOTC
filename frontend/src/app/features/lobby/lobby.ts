@@ -4,6 +4,7 @@ import { LobbyService } from "./lobby.service";
 import { firstValueFrom } from "rxjs";
 import { Room } from "../../models/room.model";
 import { RouterLink } from "@angular/router";
+import { RoomService } from "./room.service";
 
 @Component({
   standalone: true,
@@ -18,10 +19,10 @@ import { RouterLink } from "@angular/router";
 export class Lobby implements OnInit {
 
   public rooms = signal<Room[]>([]);
-  //public rooms: Room[] = [];
 
   constructor(
-    private lobbyService: LobbyService){}
+    private lobbyService: LobbyService,
+    private roomService: RoomService ){}
     
   ngOnInit(): void {
     this.getLobby()
@@ -36,5 +37,10 @@ export class Lobby implements OnInit {
     } catch (err) {
       console.error('Failed to rooms:', err);
     }
+  }
+
+  public async createRoom() {
+    await firstValueFrom(this.roomService.createRoom());
+    await this.getLobby();
   }
 }
