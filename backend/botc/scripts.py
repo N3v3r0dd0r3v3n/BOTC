@@ -50,3 +50,22 @@ def trouble_brewing_script() -> Script:
             15: {"townsfolk": 9, "outsiders": 2, "minions": 3, "demons": 1},
         }
     )
+
+
+TB_ROLE_GROUPS = {
+    "townsfolk": [
+        "Washerwoman", "Librarian", "Investigator", "Chef", "Empath",
+        "Fortune Teller", "Undertaker", "Monk", "Ravenkeeper",
+        "Virgin", "Slayer", "Soldier", "Mayor",
+    ],
+    "outsiders": [
+        "Butler", "Drunk", "Recluse", "Saint",
+    ],
+    "minions": [
+        "Poisoner", "Spy", "Scarlet Woman", "Baron",
+    ],
+    "demons": [
+        "Imp",
+    ],
+}
+

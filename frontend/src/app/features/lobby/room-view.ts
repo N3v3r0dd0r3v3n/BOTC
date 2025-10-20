@@ -44,6 +44,18 @@ export class RoomViewComponent implements OnInit {
     }
   }
 
+  hasMinimumPlayers(): boolean {
+    if (this.latest().view.players > 4) {
+      return false
+    } else {
+      return true
+    }
+  }
+
+  setupGame(): void {
+    firstValueFrom(this.roomService.startGame(this.getRoom()?.gid))
+  }
+
   sendPing(): void {
     this.sockets.send({ type: 'ping', t: Date.now() });
   }

@@ -4,12 +4,13 @@ from collections import defaultdict
 from typing import List, Set, Dict
 
 from botc.model import RoomInfo, Player, Spectator
-from botc.scripts import Script
+from botc.scripts import Script, TB_ROLE_GROUPS
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus
 from botc.model import Player
 from botc.model import Spectator
 from botc.ws.ws_prompt import WsPrompt
+import random
 
 
 class GameRoom:
@@ -17,7 +18,6 @@ class GameRoom:
         self.min_residents = 5
         self.max_residents = 20
         self.script = script
-        story_teller = creator['name'] or "Fuck me"
         self.info = RoomInfo(
             gid=gid,
             name=name,
@@ -25,7 +25,6 @@ class GameRoom:
             story_teller_name=creator['name'],
             story_teller_id=creator['id'])
         self.bus = PromptBus()
-        self.abusive = "Wank me off"
         self.spectators: List[Spectator] = []
         self.players: List[Player] = []
         self.seats = [{"seat": i + 1, "occupant": None} for i in range(initial_seat_count)]
@@ -64,14 +63,14 @@ class GameRoom:
             for i in range(current, new_max):
                 self.seats.append({"seat": i + 1, "occupant": None})
 
-        # shrink (safe only if unoccupied seats exist at the end)
+        # shrink (safe only if seat unoccupied)
         elif new_max < current:
             # remove only from the end if empty
-            for i in range(current - 1, new_max - 1, -1):
+            for i in range(current - 1, -1, -1):
                 seat = self.seats[i]
-                if seat["occupant"] is not None:
-                    return False, "cannot_remove_occupied_seat"
-                self.seats.pop(i)
+                if seat["occupant"] is None:
+                    self.seats.pop(i)
+                    break
 
         return True, None
 
@@ -86,6 +85,35 @@ class GameRoom:
         p = Player(id=seat, name=player_name, seat=seat)
         self.game.players.append(p)
         return {"id": p.id, "seat": p.seat, "name": p.name}
+
+    def build_role_deck(self) -> list[str]:
+        counts = self.script.role_counts.get(len(self.players))
+        if not counts:
+            raise ValueError(f"Unsupported player count: {len(self.players)}")
+
+        # Safety checks
+        for k in ("townsfolk", "outsiders", "minions", "demons"):
+            need = counts.get(k, 0)
+            have = len(TB_ROLE_GROUPS[k])
+            if need > have:
+                raise ValueError(f"Not enough roles in group '{k}': need {need}, have {have}")
+
+        deck = []
+        deck += random.sample(TB_ROLE_GROUPS["townsfolk"], counts["townsfolk"])
+        deck += random.sample(TB_ROLE_GROUPS["outsiders"], counts["outsiders"])
+        deck += random.sample(TB_ROLE_GROUPS["minions"], counts["minions"])
+        deck += random.sample(TB_ROLE_GROUPS["demons"], counts["demons"])
+
+        if len(deck) != len(self.players):
+            raise AssertionError("Role deck size does not match player count")
+
+        random.shuffle(deck)
+        return deck
+
+    def setup_game(self):
+        deck = self.build_role_deck()
+        print(deck)
+        return True
 
     def start_game(self, role_names: List[str] | None = None):
         import random
@@ -169,7 +197,6 @@ class GameRoom:
         # viewers
         if self.room_viewers:
             view = view_for_room(self.game, self)
-            #view["unseated"] = self.unseated_players()
             room_view = {"type": "state", "view": view}
             gone = []
             for v in list(self.room_viewers):

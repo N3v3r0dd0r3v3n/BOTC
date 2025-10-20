@@ -22,6 +22,7 @@ def view_for_room(game, room):
         "room": asdict(room.info),
         "seats": seats_view,
         "spectators": [{"id": s.id, "name": s.name} for s in room.spectators],
+        "players": len(room.players)
     }
 
 

@@ -33,12 +33,16 @@
 
     @if (isStoryTeller()) {
         @if (getSeats().length < 20) {
-            <button type="submit" (click)="addChair()">Add Chair</button>
+            <button type="submit" (click)="addChair()">Add Chair</button>&nbsp;
         }
         @if (getSeats().length > 5) {
             <button type="submit" (click)="removeChair()">Remove Chair</button>
         }
+        <br/>
+        <button type="submit" (click)="setupGame()" [disabled]="hasMinimumPlayers()">Prepare bag</button>
     }
+
+
 
     <pre>Spectators</pre>
 

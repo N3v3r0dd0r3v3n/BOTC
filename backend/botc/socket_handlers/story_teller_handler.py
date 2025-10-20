@@ -16,12 +16,12 @@ class StorytellerSocket(tornado.websocket.WebSocketHandler):
     def open(self, gid: str):
         room = self.rooms.get(gid)
         if not room:
-            self.write_message(json.dumps({"type":"error","error":"room_not_found"}))
+            self.write_message(json.dumps({"type": "error", "error": "room_not_found"}))
             self.close()
             return
         self.room = room
         room.storyteller = self
-        self.send({"type":"hello","gid":gid})
+        self.send({"type": "hello", "gid": gid})
         room.broadcast()
 
     def on_message(self, message):

@@ -26,6 +26,5 @@ class SeatsHandler(BaseHandler):
 
         room.broadcast()
         self.write({
-            "ok": True,
-            "seats": room.seats
+            "ok": True
         })

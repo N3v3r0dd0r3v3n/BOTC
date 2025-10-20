@@ -72,6 +72,10 @@ export class RoomService {
     return this.http.post<any>(`${this.baseUrl}/${roomId}/leave`, body, this.httpOptions)
   }
 
+  startGame(roomId: string) {
+    return this.http.post<any>(`${this.baseUrl}/${roomId}/start`, this.httpOptions)
+  }
+
   private getVisitor() {
     const raw = localStorage.getItem('visitor') || '{}';
     const visitor = safeParse(raw);

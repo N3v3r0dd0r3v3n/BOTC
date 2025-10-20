@@ -3,7 +3,7 @@ import { Component, OnInit, signal } from "@angular/core";
 import { LobbyService } from "./lobby.service";
 import { firstValueFrom } from "rxjs";
 import { Room } from "../../models/room.model";
-import { RouterLink } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { RoomService } from "./room.service";
 
 @Component({
@@ -22,7 +22,8 @@ export class Lobby implements OnInit {
 
   constructor(
     private lobbyService: LobbyService,
-    private roomService: RoomService ){}
+    private roomService: RoomService,
+    private router: Router){}
     
   ngOnInit(): void {
     this.getLobby()
@@ -32,15 +33,13 @@ export class Lobby implements OnInit {
     try {
       const response = await firstValueFrom(this.lobbyService.getRooms());
       this.rooms.set(response.rooms);
-      //this.rooms = response.rooms;
-      console.log(this.rooms);
     } catch (err) {
-      console.error('Failed to rooms:', err);
+      console.error('Failed to get rooms:', err);
     }
   }
 
   public async createRoom() {
-    await firstValueFrom(this.roomService.createRoom());
-    await this.getLobby();
+    const response = await firstValueFrom(this.roomService.createRoom());
+    this.router.navigate(['/room/' + response.gid]);
   }
 }

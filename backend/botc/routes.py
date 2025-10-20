@@ -22,7 +22,7 @@ def http_routes():
         url(r"/api/rooms", RoomsHandler, name="lobby-rooms"),
         url(r"/api/rooms/(.+)/join", JoinRoomHandler, name="room-join"),
         url(r"/api/rooms/(.+)/leave", LeaveRoomHandler, name="room-leave"),
-        url(r"/api/room/(.+)/start", StartRoomHandler, name="room-start"),
+        url(r"/api/rooms/(.+)/start", StartRoomHandler, name="room-start"),
         url(r"/api/rooms/(.+)/seats", SeatsHandler, name="room-seats"),
         url(r"/api/rooms/(.+)/sit", SitHandler, name="room-sit"),
         url(r"/api/rooms/(.+)/vacate", VacateHandler, name="room-vacate"),
