@@ -20,11 +20,27 @@ class JoinRoomHandler(BaseHandler):
             self.write({"error": "missing_name"})
             return
 
-        #If I am the story teller then don't add me.
+        if spectator_id == room.info.storyteller_id:
+            self.write({
+                "ok": True,
+                "role": "storyteller",
+                "storyteller_id": room.info.storyteller_id,
+                "total_spectators": len(room.spectators),
+                "total_players": len(room.players)
+            })
+            return
+
         spectator = room.join_unseated(spectator_id, spectator_name)
         if not spectator:
             self.set_status(409)
             self.write({"error": "room_not_open"})
             return
         room.broadcast()
-        self.write({"ok": True, "spectator": spectator, "total_spectators": len(room.spectators)})
+        self.write({
+            "ok": True,
+            "role": "spectator",
+            "storyteller_id": room.info.storyteller_id,
+            "spectator": spectator,
+            "total_spectators": len(room.spectators),
+            "total_players": len(room.players)
+        })

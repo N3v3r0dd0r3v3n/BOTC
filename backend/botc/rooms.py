@@ -22,8 +22,8 @@ class GameRoom:
             gid=gid,
             name=name,
             script_name=script.name,
-            story_teller_name=creator['name'],
-            story_teller_id=creator['id'])
+            storyteller_name=creator['name'],
+            storyteller_id=creator['id'])
         self.bus = PromptBus()
         self.spectators: List[Spectator] = []
         self.players: List[Player] = []
@@ -186,17 +186,22 @@ class GameRoom:
                 del self.player_sockets[pid]
 
         # storyteller
-        """
+        print("Storyteller?")
+        print(self.storyteller)
         if self.storyteller:
             try:
-                self.storyteller.send({"type": "state", "view": view_for_storyteller(self.game, self)})
-            except Exception:
+                print("Sending")
+                self.storyteller.send({"type": "state", "view": view_for_storyteller(None, self)})
+                print("Sent")
+            except Exception as ex:
                 self.storyteller = None
-        """
+                print("Something went wrong")
+                print(ex)
+
 
         # viewers
         if self.room_viewers:
-            view = view_for_room(self.game, self)
+            view = view_for_room(self)
             room_view = {"type": "state", "view": view}
             gone = []
             for v in list(self.room_viewers):
@@ -236,7 +241,7 @@ class GameRoom:
         return next((s for s in self.spectators if s.id == sid), None)
 
     def is_storyteller(self, stid: int) -> bool:
-        return stid == self.info.story_teller_id
+        return stid == self.info.storyteller_id
 
     def is_spectator(self, sid: int) -> bool:
         return self.spectator_by_id(sid) is not None

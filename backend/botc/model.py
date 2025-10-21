@@ -65,8 +65,8 @@ class Seat:
 class RoomInfo:
     gid: str
     name: str
-    story_teller_id: int
-    story_teller_name: str
+    storyteller_id: int
+    storyteller_name: str
     script_name: str
     status: str = "open"  # open | started | finished
 

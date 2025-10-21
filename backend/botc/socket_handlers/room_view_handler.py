@@ -24,7 +24,7 @@ class RoomViewerSocket(tornado.websocket.WebSocketHandler):
         self.room = room
         room.add_room_viewer(self)
         # send initial state
-        initial = view_for_room(room.game, room)
+        initial = view_for_room(room)
         self.send({"type": "state", "view": initial})
 
     def on_message(self, message):

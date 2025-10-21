@@ -5,6 +5,7 @@ import { RoomSocketService } from './room-socket.service';
 import { Room } from '../../models/room.model';
 import { RoomService } from './room.service';
 import { first, firstValueFrom } from 'rxjs';
+import { StoryTellerSocketService } from './storyteller-socket.service';
 
 @Component({
   standalone: true,
@@ -13,19 +14,25 @@ import { first, firstValueFrom } from 'rxjs';
   templateUrl: './room-view.html',
   styleUrl: './room-view.css',
   // Component-scoped instance so it dies with the page
-  providers: [RoomSocketService]
+  providers: [
+    RoomSocketService,
+    StoryTellerSocketService
+  ]
 })
 export class RoomViewComponent implements OnInit {
   public latest!: Signal<any | null>;
+  public stLatest!: Signal<any | null>;
   public isSeated: boolean = false;
 
   constructor(
     private readonly sockets: RoomSocketService,
+    private readonly stSocket: StoryTellerSocketService,
     private readonly roomService: RoomService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
   ) {
     this.latest = this.sockets.latest;
+    this.stLatest = this.stSocket.latest;
   }
 
   async ngOnInit(): Promise<void> {
@@ -35,9 +42,24 @@ export class RoomViewComponent implements OnInit {
       return;
     }
     try {
-      await this.sockets.connect(gid);
-      //if i'm the story teller then i would need to create the storyteller socket
       const resp = await firstValueFrom(this.roomService.joinRoom(gid));
+      console.log(resp)
+      alert(resp["role"]);
+      alert(resp.role);
+
+      if (resp["role"] == "storyteller") {
+        await this.stSocket.connect(gid);
+      }
+
+      //if (this.isStoryTeller()) {
+      //  alert("Story teller")
+      //} 
+      await this.sockets.connect(gid);
+      //if (this.isStoryTeller()) {
+      
+      //}
+      //if i'm the story teller then i would need to create the storyteller socket
+      
     
     } catch (err) {
       console.error('Failed to open room socket:', err);
