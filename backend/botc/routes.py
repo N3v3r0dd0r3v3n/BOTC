@@ -1,4 +1,6 @@
 from tornado.web import url
+
+from botc.request_handlers.get_room_handler import RoomDetailsHandler
 from botc.request_handlers.join_room_handler import JoinRoomHandler
 from botc.request_handlers.leave_room_handler import LeaveRoomHandler
 from botc.request_handlers.lobby_handler import LobbyHandler
@@ -20,6 +22,7 @@ def http_routes():
         url(r"/api/lobby", LobbyHandler, name="lobby"),
         url(r"/api/lobby/(.+)", LobbyRoomHandler, name="lobby-room"),
         url(r"/api/rooms", RoomsHandler, name="lobby-rooms"),
+        url(r"/api/rooms/(.+)", RoomDetailsHandler, name="room-details"),
         url(r"/api/rooms/(.+)/join", JoinRoomHandler, name="room-join"),
         url(r"/api/rooms/(.+)/leave", LeaveRoomHandler, name="room-leave"),
         url(r"/api/rooms/(.+)/start", StartRoomHandler, name="room-start"),

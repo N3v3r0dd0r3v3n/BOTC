@@ -20,6 +20,7 @@ class JoinRoomHandler(BaseHandler):
             self.write({"error": "missing_name"})
             return
 
+        """
         if spectator_id == room.info.storyteller_id:
             self.write({
                 "ok": True,
@@ -29,6 +30,7 @@ class JoinRoomHandler(BaseHandler):
                 "total_players": len(room.players)
             })
             return
+        """
 
         spectator = room.join_unseated(spectator_id, spectator_name)
         if not spectator:
