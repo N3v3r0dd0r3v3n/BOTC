@@ -3,6 +3,7 @@ from typing import Dict, Optional
 import tornado
 
 from botc.rooms import GameRoom
+from botc.view import view_for_storyteller
 
 
 class StorytellerSocket(tornado.websocket.WebSocketHandler):
@@ -21,7 +22,8 @@ class StorytellerSocket(tornado.websocket.WebSocketHandler):
             return
         self.room = room
         room.storytellerSocket = self
-        self.send({"type": "hello", "gid": gid})
+        self.send({"type": "state",
+                   "view": view_for_storyteller(None, room)})
         room.broadcast()
 
     def on_message(self, message):
