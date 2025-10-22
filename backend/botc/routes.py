@@ -19,18 +19,22 @@ from botc.rooms import rooms
 
 def http_routes():
     return [
-        url(r"/api/rooms/(.+)/joinXX", JoinRoomHandler, name="room-join"),
-        url(r"/api/lobby", LobbyHandler, name="lobby"),
-        url(r"/api/lobby/(.+)", LobbyRoomHandler, name="lobby-room"),
-        url(r"/api/rooms", RoomsHandler, name="lobby-rooms"),
-        url(r"/api/rooms/(.+)", RoomHandler, name="room-details"),
+        # Specific room actions FIRST (gid is a single path segment)
+        url(r"/api/rooms/([^/]+)/join", JoinRoomHandler, name="room-join"),
+        url(r"/api/rooms/([^/]+)/leave", LeaveRoomHandler, name="room-leave"),
+        url(r"/api/rooms/([^/]+)/start", StartRoomHandler, name="room-start"),
+        url(r"/api/rooms/([^/]+)/seats", SeatsHandler, name="room-seats"),
+        url(r"/api/rooms/([^/]+)/sit", SitHandler, name="room-sit"),
+        url(r"/api/rooms/([^/]+)/vacate", VacateHandler, name="room-vacate"),
+        url(r"/api/rooms/([^/]+)/step", StepHandler, name="room-step"),
 
-        url(r"/api/rooms/(.+)/leave", LeaveRoomHandler, name="room-leave"),
-        url(r"/api/rooms/(.+)/start", StartRoomHandler, name="room-start"),
-        url(r"/api/rooms/(.+)/seats", SeatsHandler, name="room-seats"),
-        url(r"/api/rooms/(.+)/sit", SitHandler, name="room-sit"),
-        url(r"/api/rooms/(.+)/vacate", VacateHandler, name="room-vacate"),
-        url(r"/api/room/(.+)/step", StepHandler, name="room-step"),
+        # Collections / other endpoints
+        url(r"/api/lobby", LobbyHandler, name="lobby"),
+        url(r"/api/lobby/([^/]+)", LobbyRoomHandler, name="lobby-room"),
+        url(r"/api/rooms", RoomsHandler, name="lobby-rooms"),
+
+        # Catch-all room details LAST
+        url(r"/api/rooms/([^/]+)", RoomHandler, name="room-details"),
     ]
 
 

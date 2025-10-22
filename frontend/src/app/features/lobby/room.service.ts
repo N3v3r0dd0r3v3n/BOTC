@@ -39,7 +39,7 @@ export class RoomService {
         id: visitor?.id ?? null,
         name: visitor?.name ?? null,
     }
-    return this.http.post<any>(`${this.baseUrl}/${roomId}/joinXX`, body, this.httpOptions)
+    return this.http.post<any>(`${this.baseUrl}/${roomId}/join`, body, this.httpOptions)
   }
 
   updateSeatCount(roomId: string, seatCount: number) {
