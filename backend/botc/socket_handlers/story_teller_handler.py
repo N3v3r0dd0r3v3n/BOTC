@@ -20,7 +20,7 @@ class StorytellerSocket(tornado.websocket.WebSocketHandler):
             self.close()
             return
         self.room = room
-        room.storyteller = self
+        room.storytellerSocket = self
         self.send({"type": "hello", "gid": gid})
         room.broadcast()
 
@@ -37,8 +37,8 @@ class StorytellerSocket(tornado.websocket.WebSocketHandler):
         self.room.broadcast()
 
     def on_close(self):
-        if self.room and self.room.storyteller is self:
-            self.room.storyteller = None
+        if self.room and self.room.storytellerSocket is self:
+            self.room.storytellerSocket = None
 
     def send(self, obj):
         self.write_message(json.dumps(obj))

@@ -4,6 +4,7 @@ from botc.rooms import rooms
 
 
 class JoinRoomHandler(BaseHandler):
+
     def post(self, gid: str):
         print("Joining room " + gid)
         room = rooms.get(gid)
@@ -46,3 +47,4 @@ class JoinRoomHandler(BaseHandler):
             "total_spectators": len(room.spectators),
             "total_players": len(room.players)
         })
+

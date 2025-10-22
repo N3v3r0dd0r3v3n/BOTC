@@ -3,7 +3,7 @@ from botc.request_handlers.base_handler import BaseHandler
 from botc.rooms import rooms
 
 
-class RoomDetailsHandler(BaseHandler):
+class RoomHandler(BaseHandler):
     def get(self, gid: str):
         print("Getting room details " + gid)
         room = rooms.get(gid)
@@ -18,6 +18,6 @@ class RoomDetailsHandler(BaseHandler):
             "total_spectators": len(room.spectators),
             "total_players": len(room.players)
         }
-        
+
         self.write(payload)
         return

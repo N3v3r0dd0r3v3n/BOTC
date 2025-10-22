@@ -186,15 +186,15 @@ class GameRoom:
                 del self.player_sockets[pid]
 
         # storyteller
-        print("Storyteller?")
-        print(self.storyteller)
-        if self.storyteller:
+        print("storytellerSocket?")
+        print(self.storytellerSocket)
+        if self.storytellerSocket:
             try:
                 print("Sending")
-                self.storyteller.send({"type": "state", "view": view_for_storyteller(None, self)})
+                self.storytellerSocket.send({"type": "state", "view": view_for_storyteller(None, self)})
                 print("Sent")
             except Exception as ex:
-                self.storyteller = None
+                self.storytellerSocket = None
                 print("Something went wrong")
                 print(ex)
 
