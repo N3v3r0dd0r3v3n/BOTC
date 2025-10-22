@@ -29,7 +29,12 @@ class RoomViewerSocket(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         # Read-only; ignore
-        pass
+        try:
+            msg = json.loads(message)
+        except Exception:
+            return
+        if msg.get("type") in ("get_state", "ping"):
+            self.send({"type": "state", "view": view_for_room(self.room)})
 
     def on_close(self):
         if self.room:

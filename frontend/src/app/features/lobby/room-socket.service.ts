@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, Signal, signal } from '@angular/core';
+import { DestroyRef, Injectable, NgZone, Signal, signal } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { Subscription } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -12,7 +12,10 @@ export class RoomSocketService {
   private sub?: Subscription;
   private currentGid?: string;
 
-  constructor(private readonly destroyRef: DestroyRef) {
+  constructor(
+    private readonly destroyRef: DestroyRef,
+    private readonly zone: NgZone
+  ) {
     // Ensure the connection closes when the component is destroyed
     this.destroyRef.onDestroy(() => this.teardown());
   }
@@ -40,7 +43,7 @@ export class RoomSocketService {
 
     // Service owns the subscription, not the component
     this.sub = this.socket.subscribe({
-      next: msg => (this.latest as any).set?.(msg), // set() exists on WritableSignal; cast keeps API simple
+      next: msg => this.zone.run(() => (this.latest as any).set?.(msg)),
       error: err => console.error('WS error', err),
       complete: () => console.log('WS complete')
     });

@@ -1,19 +1,20 @@
-import { DestroyRef, Injectable, Signal, signal } from '@angular/core';
+import { DestroyRef, Injectable, NgZone, Signal, signal } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { Subscription } from 'rxjs';
 import { environment } from '../../environments/environment';
 
-@Injectable() 
+@Injectable()
 export class StoryTellerSocketService {
-  // Bind to this from the component/template
   public readonly latest: Signal<any | null> = signal<any | null>(null);
 
   private socket?: WebSocketSubject<any>;
   private sub?: Subscription;
   private currentGid?: string;
 
-  constructor(private readonly destroyRef: DestroyRef) {
-    // Ensure the connection closes when the component is destroyed
+  constructor(
+    private readonly destroyRef: DestroyRef,
+    private readonly zone: NgZone
+  ) {
     this.destroyRef.onDestroy(() => this.teardown());
   }
 
@@ -25,7 +26,6 @@ export class StoryTellerSocketService {
     this.currentGid = gid;
 
     const url = `${environment.botc_service_ws}/${gid}/st`;
-    console.log(url);
 
     let opened!: () => void;
     const openedPromise = new Promise<void>(res => (opened = res));
@@ -35,14 +35,13 @@ export class StoryTellerSocketService {
       deserializer: e => JSON.parse((e as MessageEvent).data as string),
       serializer: v => JSON.stringify(v),
       openObserver: { next: () => opened() },
-      closeObserver: { next: ev => console.log('WS closed', gid, ev) }
+      closeObserver: { next: ev => console.log('WS closed (st)', gid, ev) }
     });
 
-    // Service owns the subscription, not the component
     this.sub = this.socket.subscribe({
-      next: msg => (this.latest as any).set?.(msg), // set() exists on WritableSignal; cast keeps API simple
-      error: err => console.error('WS error', err),
-      complete: () => console.log('WS complete')
+      next: msg => this.zone.run(() => (this.latest as any).set?.(msg)),
+      error: err => console.error('WS error (st)', err),
+      complete: () => console.log('WS complete (st)')
     });
 
     await openedPromise;

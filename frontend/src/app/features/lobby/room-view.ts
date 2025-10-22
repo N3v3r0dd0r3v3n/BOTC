@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal, Signal } from '@angular/core';
+import { Component, OnInit, Signal, signal, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+
 import { RoomSocketService } from './room-socket.service';
-import { Room } from '../../models/room.model';
-import { RoomService } from './room.service';
-import { first, firstValueFrom } from 'rxjs';
 import { StoryTellerSocketService } from './storyteller-socket.service';
+import { RoomService } from './room.service';
 
 @Component({
   standalone: true,
@@ -13,17 +13,14 @@ import { StoryTellerSocketService } from './storyteller-socket.service';
   imports: [CommonModule],
   templateUrl: './room-view.html',
   styleUrl: './room-view.css',
-  // Component-scoped instance so it dies with the page
-  providers: [
-    RoomSocketService,
-    StoryTellerSocketService
-  ]
+  providers: [RoomSocketService, StoryTellerSocketService]
 })
 export class RoomViewComponent implements OnInit {
-  public latest: Signal<any | null> = signal(null);
-  public isSeated: boolean = false;
+  // PUBLIC so the template can call latest()
+  public latest: Signal<any | null> = signal<any | null>(null);
 
-  private isST: boolean = false;
+  public isSeated = false;
+  private isST = false;
 
   constructor(
     private readonly spectatorSocket: RoomSocketService,
@@ -31,101 +28,109 @@ export class RoomViewComponent implements OnInit {
     private readonly roomService: RoomService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-  ) {
-  }
+    private readonly cd: ChangeDetectorRef,
+  ) {}
 
   async ngOnInit(): Promise<void> {
     const gid = this.route.snapshot.paramMap.get('gid') ?? '';
-    if (!gid) {
-      return;
-    }
+    if (!gid) return;
 
-    const visitor = JSON.parse(localStorage.getItem('visitor') || '{}');
-    const response = await firstValueFrom(this.roomService.getRoomDetails(gid));
-    this.isST = response?.storyteller_id === visitor?.id;
+    const visitor = safeParse(localStorage.getItem('visitor') || '{}') || {};
+    const meta = await firstValueFrom(this.roomService.getRoomDetails(gid));
+    this.isST = meta?.storyteller_id === visitor?.id;
 
-    console.log(response?.storyteller_id)
-    console.log(visitor?.id)
+    // Bind latest to the chosen service signal BEFORE connecting
+    this.latest = this.isST ? this.stSocket.latest : this.spectatorSocket.latest;
 
+    // Make sure the template notices the new signal reference immediately
+    this.cd.detectChanges();
+
+    // Connect the chosen socket
     if (this.isST) {
-      this.latest = this.stSocket.latest;
-      await this.stSocket.connect(gid);
-      this.stSocket.send({ type: 'get_state' }); 
+      await this.stSocket.connect(gid);        // ST open() sends initial state
     } else {
-      this.latest = this.spectatorSocket.latest;
-      await this.spectatorSocket.connect(gid);
-      this.spectatorSocket.send({ type: 'get_state' });    // request 
+      await this.spectatorSocket.connect(gid); // Viewer open() sends initial state
     }
 
+    // Join the room (server may broadcast; we are already connected)
     await firstValueFrom(this.roomService.joinRoom(gid));
-    
+
+    // Ask for state explicitly as a belt-and-braces
+    if (this.isST) this.stSocket.send({ type: 'get_state' });
+    else this.spectatorSocket.send({ type: 'get_state' });
+
+    // One more change-detection nudge in case the first push raced the binding
+    this.cd.detectChanges();
   }
 
   hasMinimumPlayers(): boolean {
-    if (this.latest().view.players > 4) {
-      return false
-    } else {
-      return true
-    }
+    const players = this.latest()?.view?.players ?? [];
+    return players.length < 5;
   }
 
   setupGame(): void {
-    firstValueFrom(this.roomService.startGame(this.getRoom()?.gid))
+    const gid = this.latest()?.view?.room?.gid;
+    if (gid) void firstValueFrom(this.roomService.startGame(gid));
   }
 
   sendPing(): void {
-    if (this.isST) {
-      this.stSocket.send({ type: 'ping', t: Date.now() });
-    } else {
-      this.spectatorSocket.send({ type: 'ping', t: Date.now() });
-    }
+    const payload = { type: 'ping', t: Date.now() };
+    if (this.isST) this.stSocket.send(payload);
+    else this.spectatorSocket.send(payload);
   }
 
   async addChair() {
-    const newSeatCount = this.getSeats().length + 1;
-    this.updateSeatCount(newSeatCount);
+    const seats = this.getSeats();
+    this.updateSeatCount(seats.length + 1);
   }
 
   removeChair() {
-    const newSeatCount = this.getSeats().length - 1;
-    this.updateSeatCount(newSeatCount);
+    const seats = this.getSeats();
+    this.updateSeatCount(seats.length - 1);
   }
 
   sit(seat: number) {
     this.isSeated = true;
-    return firstValueFrom(this.roomService.sit(this.getRoom()?.gid, seat))
+    const gid = this.latest()?.view?.room?.gid;
+    if (gid) return firstValueFrom(this.roomService.sit(gid, seat));
+    return Promise.resolve();
   }
 
   vacate(seat: number) {
     this.isSeated = false;
-    return firstValueFrom(this.roomService.vacate(this.getRoom()?.gid, seat))
+    const gid = this.latest()?.view?.room?.gid;
+    if (gid) return firstValueFrom(this.roomService.vacate(gid, seat));
+    return Promise.resolve();
   }
 
   leave() {
     this.isSeated = false;
-    firstValueFrom(this.roomService.leave(this.getRoom()?.gid));
+    const gid = this.latest()?.view?.room?.gid;
+    if (gid) void firstValueFrom(this.roomService.leave(gid));
     this.router.navigate(['/lobby']);
   }
 
   isMySeat(seat: any) {
-    const v = JSON.parse(localStorage.getItem('visitor') || '{}');
-    return seat.occupant.id == v.id
+    const v = safeParse(localStorage.getItem('visitor') || '{}') || {};
+    return seat?.occupant?.id === v.id;
   }
-  
+
   isStoryTeller(): boolean {
-    const v = JSON.parse(localStorage.getItem('visitor') || '{}');
-    return !!this.getRoom()?.story_teller_id && this.getRoom().story_teller_id === v?.id;
+    const v = safeParse(localStorage.getItem('visitor') || '{}') || {};
+    const roomSt = this.latest()?.view?.room?.story_teller_id ?? this.latest()?.view?.room?.storyteller_id;
+    return !!roomSt && roomSt === v?.id;
   }
 
   private updateSeatCount(seatCount: number) {
-    return firstValueFrom(this.roomService.updateSeatCount(this.getRoom()?.gid, seatCount));
+    const gid = this.latest()?.view?.room?.gid;
+    if (gid) return firstValueFrom(this.roomService.updateSeatCount(gid, seatCount));
+    return Promise.resolve();
   }
 
-  private getRoom() {
-    return this.latest().view.room;
-  }
+  private getRoom() { return this.latest()?.view?.room ?? null; }
+  public  getSeats() { return this.latest()?.view?.seats ?? []; }
+}
 
-  public getSeats() {
-    return this.latest().view.seats;
-  }
+function safeParse(s: string) {
+  try { return JSON.parse(s); } catch { return null; }
 }
