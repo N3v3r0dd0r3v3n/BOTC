@@ -26,6 +26,11 @@ export class RoomService {
     return this.http.post<any>(this.baseUrl, body, this.httpOptions);
   }
 
+  getRoomDetails(roomId: string) {
+    return this.http.get<any>(`${this.baseUrl}/${roomId}`)
+  }
+
+
   joinRoom(roomId: string) {
     const raw = localStorage.getItem('visitor') || '{}';
     const visitor = safeParse(raw); //
@@ -34,7 +39,7 @@ export class RoomService {
         id: visitor?.id ?? null,
         name: visitor?.name ?? null,
     }
-    return this.http.post<any>(`${this.baseUrl}/${roomId}/join`, body, this.httpOptions)
+    return this.http.post<any>(`${this.baseUrl}/${roomId}/joinXX`, body, this.httpOptions)
   }
 
   updateSeatCount(roomId: string, seatCount: number) {

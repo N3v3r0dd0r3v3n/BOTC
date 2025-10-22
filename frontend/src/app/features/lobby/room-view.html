@@ -4,10 +4,6 @@
 
     <button type="submit" (click)="leave()">Leave</button>
 
-    @if (stLatest != null) {
-        STLatest: <pre>{{stLatest() | json}}</pre>
-    }
-
     @if (isStoryTeller()) {
         <h4>You are the storyteller!!!!</h4>
     }

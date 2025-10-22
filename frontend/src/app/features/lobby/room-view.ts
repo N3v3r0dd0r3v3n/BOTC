@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, Signal } from '@angular/core';
+import { Component, OnInit, signal, Signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RoomSocketService } from './room-socket.service';
 import { Room } from '../../models/room.model';
@@ -20,50 +20,45 @@ import { StoryTellerSocketService } from './storyteller-socket.service';
   ]
 })
 export class RoomViewComponent implements OnInit {
-  public latest!: Signal<any | null>;
-  public stLatest!: Signal<any | null>;
+  public latest: Signal<any | null> = signal(null);
   public isSeated: boolean = false;
 
+  private isST: boolean = false;
+
   constructor(
-    private readonly sockets: RoomSocketService,
+    private readonly spectatorSocket: RoomSocketService,
     private readonly stSocket: StoryTellerSocketService,
     private readonly roomService: RoomService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
   ) {
-    this.latest = this.sockets.latest;
-    this.stLatest = this.stSocket.latest;
   }
 
   async ngOnInit(): Promise<void> {
     const gid = this.route.snapshot.paramMap.get('gid') ?? '';
     if (!gid) {
-      console.error('No gid in route');
       return;
     }
-    try {
-      const resp = await firstValueFrom(this.roomService.joinRoom(gid));
-      console.log(resp)
-      alert(resp["role"]);
-      alert(resp.role);
 
-      if (resp["role"] == "storyteller") {
-        await this.stSocket.connect(gid);
-      }
+    const visitor = JSON.parse(localStorage.getItem('visitor') || '{}');
+    const response = await firstValueFrom(this.roomService.getRoomDetails(gid));
+    this.isST = response?.storyteller_id === visitor?.id;
 
-      //if (this.isStoryTeller()) {
-      //  alert("Story teller")
-      //} 
-      await this.sockets.connect(gid);
-      //if (this.isStoryTeller()) {
-      
-      //}
-      //if i'm the story teller then i would need to create the storyteller socket
-      
-    
-    } catch (err) {
-      console.error('Failed to open room socket:', err);
+    console.log(response?.storyteller_id)
+    console.log(visitor?.id)
+
+    if (this.isST) {
+      this.latest = this.stSocket.latest;
+      await this.stSocket.connect(gid);
+      this.stSocket.send({ type: 'get_state' }); 
+    } else {
+      this.latest = this.spectatorSocket.latest;
+      await this.spectatorSocket.connect(gid);
+      this.spectatorSocket.send({ type: 'get_state' });    // request 
     }
+
+    await firstValueFrom(this.roomService.joinRoom(gid));
+    
   }
 
   hasMinimumPlayers(): boolean {
@@ -79,7 +74,11 @@ export class RoomViewComponent implements OnInit {
   }
 
   sendPing(): void {
-    this.sockets.send({ type: 'ping', t: Date.now() });
+    if (this.isST) {
+      this.stSocket.send({ type: 'ping', t: Date.now() });
+    } else {
+      this.spectatorSocket.send({ type: 'ping', t: Date.now() });
+    }
   }
 
   async addChair() {
