@@ -41,6 +41,6 @@ def http_routes():
 def ws_routes():
     return [
         (r"/ws/(.+)/st",     StorytellerSocket, {"rooms": rooms}),
-        (r"/ws/(.+)/player/(\d+)", PlayerSocket, {"rooms": rooms}),
+        (r"/ws/(.+)/player/([^/]+)", PlayerSocket, {"rooms": rooms}),
         (r"/ws/(.+)/room",   RoomViewerSocket, {"rooms": rooms}),
     ]

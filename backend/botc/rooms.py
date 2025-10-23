@@ -172,8 +172,7 @@ class GameRoom:
     def broadcast(self):
         # players
         for pid, socks in list(self.player_sockets.items()):
-            view = view_for_player(self.game, pid, self)
-            msg = {"type": "state", "view": view}
+            msg = {"type": "state", "view": view_for_player(self.game, pid, self)}
             dead = []
             for sock in list(socks):
                 try:
@@ -185,9 +184,6 @@ class GameRoom:
             if not socks:
                 del self.player_sockets[pid]
 
-        # storyteller
-        print("storytellerSocket?")
-        print(self.storytellerSocket)
         if self.storytellerSocket:
             try:
                 print("Sending")
@@ -201,8 +197,7 @@ class GameRoom:
 
         # viewers
         if self.room_viewers:
-            view = view_for_room(self)
-            room_view = {"type": "state", "view": view}
+            room_view = {"type": "state", "view": view_for_room(self)}
             gone = []
             for v in list(self.room_viewers):
                 try:
@@ -235,7 +230,7 @@ class GameRoom:
     """
 
     def player_by_id(self, pid: int):
-        return next((p for p in self.game.players if p.id == pid), None)
+        return next((p for p in self.players if p.id == pid), None)
 
     def spectator_by_id(self, sid: int):
         return next((s for s in self.spectators if s.id == sid), None)

@@ -3,9 +3,10 @@ import { Component, OnInit, Signal, signal, ChangeDetectorRef } from '@angular/c
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
-import { RoomSocketService } from './room-socket.service';
+import { SpectatorSocketService } from './spectator-socket.service';
 import { StoryTellerSocketService } from './storyteller-socket.service';
 import { RoomService } from './room.service';
+import { PlayerSocketService } from './player-socket.service';
 
 @Component({
   standalone: true,
@@ -13,7 +14,10 @@ import { RoomService } from './room.service';
   imports: [CommonModule],
   templateUrl: './room-view.html',
   styleUrl: './room-view.css',
-  providers: [RoomSocketService, StoryTellerSocketService]
+  providers: [
+    SpectatorSocketService, 
+    StoryTellerSocketService,
+    PlayerSocketService]
 })
 export class RoomViewComponent implements OnInit {
   // PUBLIC so the template can call latest()
@@ -23,7 +27,8 @@ export class RoomViewComponent implements OnInit {
   private isST = false;
 
   constructor(
-    private readonly spectatorSocket: RoomSocketService,
+    private readonly spectatorSocket: SpectatorSocketService,
+    private readonly playerSocket: PlayerSocketService,
     private readonly stSocket: StoryTellerSocketService,
     private readonly roomService: RoomService,
     private readonly route: ActivatedRoute,
@@ -35,31 +40,24 @@ export class RoomViewComponent implements OnInit {
     const gid = this.route.snapshot.paramMap.get('gid') ?? '';
     if (!gid) return;
 
-    const visitor = safeParse(localStorage.getItem('visitor') || '{}') || {};
+    
     const meta = await firstValueFrom(this.roomService.getRoomDetails(gid));
-    this.isST = meta?.storyteller_id === visitor?.id;
+    this.isST = meta?.storyteller_id === this.myId();
 
-    // Bind latest to the chosen service signal BEFORE connecting
     this.latest = this.isST ? this.stSocket.latest : this.spectatorSocket.latest;
 
     // Make sure the template notices the new signal reference immediately
     this.cd.detectChanges();
 
-    // Connect the chosen socket
     if (this.isST) {
-      await this.stSocket.connect(gid);        // ST open() sends initial state
+      await this.stSocket.connect(gid);        
     } else {
-      await this.spectatorSocket.connect(gid); // Viewer open() sends initial state
+      await this.spectatorSocket.connect(gid); 
     }
 
-    // Join the room (server may broadcast; we are already connected)
     await firstValueFrom(this.roomService.joinRoom(gid));
 
-    // Ask for state explicitly as a belt-and-braces
-    if (this.isST) this.stSocket.send({ type: 'get_state' });
-    else this.spectatorSocket.send({ type: 'get_state' });
-
-    // One more change-detection nudge in case the first push raced the binding
+    //Change-detection nudge in case the first push raced the binding
     this.cd.detectChanges();
   }
 
@@ -89,17 +87,45 @@ export class RoomViewComponent implements OnInit {
     this.updateSeatCount(seats.length - 1);
   }
 
-  sit(seat: number) {
+  async sit(seat: number) {
+    if (this.isST) {
+      return;
+    }
     this.isSeated = true;
-    const gid = this.latest()?.view?.room?.gid;
-    if (gid) return firstValueFrom(this.roomService.sit(gid, seat));
+    const roomId = this.roomId();
+
+    await firstValueFrom(this.roomService.sit(roomId, seat));
+
+    // close viewer socket before connecting as player
+    this.spectatorSocket.close();
+
+    if (this.myId != null) {
+      await this.playerSocket.connect(roomId, this.myId());
+      this.latest = this.playerSocket.latest;
+      this.cd.detectChanges();
+    }
+
     return Promise.resolve();
   }
 
-  vacate(seat: number) {
+  async vacate(seat: number) {
+    if (this.isST) {
+      return;
+    }
     this.isSeated = false;
-    const gid = this.latest()?.view?.room?.gid;
-    if (gid) return firstValueFrom(this.roomService.vacate(gid, seat));
+    const roomId = this.roomId();
+    
+    await firstValueFrom(this.roomService.vacate(roomId, seat));
+
+    // close player socket before switching back
+    
+    this.playerSocket.close();
+
+    if (this.myId != null) {
+      await this.spectatorSocket.connect(roomId);  // reopen viewer
+      this.latest = this.spectatorSocket.latest;
+      this.cd.detectChanges();
+    }
     return Promise.resolve();
   }
 
@@ -125,6 +151,15 @@ export class RoomViewComponent implements OnInit {
     const gid = this.latest()?.view?.room?.gid;
     if (gid) return firstValueFrom(this.roomService.updateSeatCount(gid, seatCount));
     return Promise.resolve();
+  }
+
+  private myId() {
+    const visitor = safeParse(localStorage.getItem('visitor') || '{}') || {};
+    return visitor.id;
+  }
+
+  private roomId() {
+    return this.getRoom().gid;
   }
 
   private getRoom() { return this.latest()?.view?.room ?? null; }

@@ -28,21 +28,27 @@ def view_for_room(room):
 
 def view_for_player(g: Game, player_id: int, room) -> dict:
     """Pre-game + in-game view for a player (id-based), including seat map."""
-    you = next((p for p in g.players if p.id == player_id), None)
-    return {
-        "phase": g.phase.name,
-        "night": g.night,
-        "you": None if not you else {
-            "id": you.id,
-            "name": you.name,
-            "seat": you.seat,
-            "alive": you.alive,
-            "ghost": you.ghost_vote_available,
-            "role": {"id": getattr(you.role, "id", None)} if (you.role and room.info.status != "open") else None
-        },
-        #"seats": room.seat_map(),  # <-- seat list 1..max with occupants
-        "status": room.info.status,  # open | started | finished
-    }
+    base = view_for_room(room)
+    base['random'] = "Hello player"
+    return base
+
+    if g:
+        you = next((p for p in g.players if p.id == player_id), None)
+        return {
+            "phase": g.phase.name,
+            "night": g.night,
+            "you": None if not you else {
+                "id": you.id,
+                "name": you.name,
+                "seat": you.seat,
+                "alive": you.alive,
+                "ghost": you.ghost_vote_available,
+                "role": {"id": getattr(you.role, "id", None)} if (you.role and room.info.status != "open") else None
+            },
+            #"seats": room.seat_map(),  # <-- seat list 1..max with occupants
+            "status": room.info.status,  # open | started | finished
+            "wankmeoff": "Hello Player"
+        }
 
 
 def view_for_seat(g: Game, seat: int) -> dict:

@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 @Injectable() 
-export class RoomSocketService {
+export class SpectatorSocketService {
   // Bind to this from the component/template
   public readonly latest: Signal<any | null> = signal<any | null>(null);
 

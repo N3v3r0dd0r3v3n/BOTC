@@ -22,7 +22,7 @@ class PlayerSocket(tornado.websocket.WebSocketHandler):
             self.close(); return
 
         self.room = room
-        self.player_id = int(pid)
+        self.player_id = pid
 
         if not room.player_by_id(self.player_id):
             self.write_message(json.dumps({"type": "error", "error": "player_not_found"}))
