@@ -22,6 +22,7 @@ import { PlayerSocketService } from './player-socket.service';
 export class RoomViewComponent implements OnInit {
   // PUBLIC so the template can call latest()
   public latest: Signal<any | null> = signal<any | null>(null);
+  public room = "Hello room"
 
   public isSeated = false;
   private isST = false;
