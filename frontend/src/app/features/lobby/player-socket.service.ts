@@ -36,7 +36,12 @@ export class PlayerSocketService {
       deserializer: e => JSON.parse((e as MessageEvent).data as string),
       serializer: v => JSON.stringify(v),
       openObserver: { next: () => opened() },
-      closeObserver: { next: ev => console.log('WS closed (player)', gid, pid, ev) }
+      closeObserver: { 
+        next: ev => { 
+          console.log('WS closed (player)', gid, pid, ev) 
+          console.log("Do something here.  The player needs vacating from the seat/room/world")
+        }
+      }
     });
 
     this.sub = this.socket.subscribe({

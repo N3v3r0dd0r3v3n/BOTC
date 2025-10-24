@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, Signal, signal, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, Signal, signal, ChangeDetectorRef, effect, WritableSignal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
@@ -22,20 +22,119 @@ import { PlayerSocketService } from './player-socket.service';
 export class RoomViewComponent implements OnInit {
   // PUBLIC so the template can call latest()
   public latest: Signal<any | null> = signal<any | null>(null);
+  public message = signal<Signal<any | null> | null>(null);
+
+  public storytellerLogs:string[] = [];
+
   public room = "Hello room"
 
   public isSeated = false;
   private isST = false;
 
+
   constructor(
     private readonly spectatorSocket: SpectatorSocketService,
     private readonly playerSocket: PlayerSocketService,
-    private readonly stSocket: StoryTellerSocketService,
+    private readonly storytellerSocket: StoryTellerSocketService,
     private readonly roomService: RoomService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly cd: ChangeDetectorRef,
-  ) {}
+  ) {
+
+    let initialised = false;
+    effect(() => {
+      const msg = this.storytellerSocket.imperative();
+
+      if (!initialised) {                   // skip the first run
+        initialised = true;
+        return;
+      }
+
+      //PLAYER_TAKEN_SEAT = "PlayerTakenSeat"
+      //PLAYER_VACATED_SEAT = "PlayerVacatedSeat"
+      
+      if (this.isST && msg != null) {
+        if (msg.type == "event") {
+          let details = "";
+          const spectator_name = msg.data.spectator_name;
+          if (msg.kind == "SpectatorJoined") {
+            details = "is spectating";
+          } else if (msg.kind == "PlayerTakenSeat") {
+            details = `has taken seat ${msg.data.seat}`;
+          } else if (msg.kind == "PlayerVacatedSeat") {
+            details = `has vacated seat ${msg.data.seat} and is now spectating`;
+          }
+          const message = `${spectator_name} ${details}`
+          this.storytellerLogs.push(message)
+          alert(message)
+        }
+      }
+
+    });
+
+    /*
+    effect(() => {
+      const s = this.playerSocket.state();
+      if (this.isST || !this.isSeated) return;        // player only when seated (and not ST)
+      if (s.status === 'closed' || s.status === 'error') {
+        this.onDisconnect('player', s.reason ?? `code:${s.code}`);
+      }
+    });
+
+    private reconnecting = false;
+private retry = 0;
+
+private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
+  console.warn(`[WS ${kind}] disconnected: ${reason}`);
+  // Example reactions:
+  // 1) update local UI flags / logs
+  this.storytellerLogs.push(`${kind.toUpperCase()} socket dropped: ${reason}`);
+
+  // 2) Optional auto-reconnect with backoff (kept simple)
+  if (this.reconnecting) return;
+  this.reconnecting = true;
+  try {
+    const delay = Math.min(15000, 500 * Math.pow(2, this.retry++)); // 0.5s, 1s, 2s, ... max 15s
+    await new Promise(r => setTimeout(r, delay));
+    const gid = this.latest()?.view?.room?.gid || this.route.snapshot.paramMap.get('gid') || '';
+
+    if (!gid) return;
+    if (kind === 'st') {
+      await this.storytellerSocket.connect(gid);
+      this.latest = this.storytellerSocket.latest;
+    } else if (kind === 'spectator') {
+      await this.spectatorSocket.connect(gid);
+      this.latest = this.spectatorSocket.latest;
+    } else {
+      const pid = this.myId();
+      if (pid != null) {
+        await this.playerSocket.connect(gid, pid);
+        this.latest = this.playerSocket.latest;
+      }
+    }
+    this.cd.detectChanges();
+    this.retry = 0; // success
+  } catch (e) {
+    // optional: if too many failures, navigate away or surface a banner
+    console.error('reconnect failed', e);
+  } finally {
+    this.reconnecting = false;
+  }
+}
+*/
+
+
+
+
+
+
+
+
+
+
+
+  }
 
   async ngOnInit(): Promise<void> {
     const gid = this.route.snapshot.paramMap.get('gid') ?? '';
@@ -45,13 +144,13 @@ export class RoomViewComponent implements OnInit {
     const meta = await firstValueFrom(this.roomService.getRoomDetails(gid));
     this.isST = meta?.storyteller_id === this.myId();
 
-    this.latest = this.isST ? this.stSocket.latest : this.spectatorSocket.latest;
+    this.latest = this.isST ? this.storytellerSocket.latest : this.spectatorSocket.latest; 
 
     // Make sure the template notices the new signal reference immediately
     this.cd.detectChanges();
 
     if (this.isST) {
-      await this.stSocket.connect(gid);        
+      await this.storytellerSocket.connect(gid);        
     } else {
       await this.spectatorSocket.connect(gid); 
     }
@@ -74,7 +173,7 @@ export class RoomViewComponent implements OnInit {
 
   sendPing(): void {
     const payload = { type: 'ping', t: Date.now() };
-    if (this.isST) this.stSocket.send(payload);
+    if (this.isST) this.storytellerSocket.send(payload);
     else this.spectatorSocket.send(payload);
   }
 

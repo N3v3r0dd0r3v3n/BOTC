@@ -63,5 +63,29 @@ curl -s -X POST http://localhost:8765/api/room/236d3b94/vacate -H 'Content-Type:
 k) Change capacity
 curl -s -X POST http://localhost:8765/api/room/236d3b94/seats -H 'Content-Type: application/json' -d '{"max_players":6}'
 
+{ type: patch, kind: PlayerJoined, data: { spectator_id, spectator_name}}
 
+state = only place the full view is sent.
+info vs action is your “two kinds” to the player.
+response is the only thing the player sends back for actions.
+cid = correlation id so replies pair to requests.
+
+| { type: 'state'; seq?: number; ts?: string; data: { view: RoomView } }
+
+  // Optional small deltas (use later if you want)
+  | { type: 'patch'; kind: 'PhaseChanged' | 'SeatTaken' | 'SeatVacated' | string; seq: number; ts?: string; data: any }
+
+  // Storyteller -> Player: information (no response expected)
+  | { type: 'info';  to?: number; ts?: string; data: { title?: string; text: string; meta?: any } }
+
+  // Storyteller -> Player: action request (response expected)
+  | { type: 'action'; cid: string; to?: number; ts?: string; data: { name: string; prompt?: string; options?: any; constraints?: any } }
+
+  // Player -> Storyteller: response to an action request
+  | { type: 'response'; cid: string; from?: number; ts?: string; data: any }
+
+  // Generic acks/errors/ping
+  | { type: 'ack'; cid?: string; data?: any }
+  | { type: 'error'; cid?: string; error: string }
+  | { type: 'pong'; t?: number };
 

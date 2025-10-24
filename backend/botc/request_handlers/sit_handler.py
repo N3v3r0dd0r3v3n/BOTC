@@ -28,6 +28,5 @@ class SitHandler(BaseHandler):
             self.write({"error": err})
             return
 
-        room.broadcast()
         # return the created player and seat info
         self.write({"ok": True})

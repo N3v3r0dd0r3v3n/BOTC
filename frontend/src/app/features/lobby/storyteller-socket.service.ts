@@ -1,11 +1,17 @@
-import { DestroyRef, Injectable, NgZone, Signal, signal } from '@angular/core';
+import { DestroyRef, Injectable, NgZone, Signal, signal, WritableSignal } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { Subscription } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 @Injectable()
 export class StoryTellerSocketService {
-  public readonly latest: Signal<any | null> = signal<any | null>(null);
+  //public latest: Signal<any | null> = signal<any | null>(null);
+  public readonly lastMessage: Signal<any | null> = signal<any | null>(null);
+
+  private readonly _latest: WritableSignal<any | null> = signal<any | null>(null);
+  public readonly latest = this._latest.asReadonly();
+  private readonly _imperative: WritableSignal<any | null> = signal<any | null>(null);
+  public readonly imperative = this._imperative.asReadonly();
 
   private socket?: WebSocketSubject<any>;
   private sub?: Subscription;
@@ -39,7 +45,16 @@ export class StoryTellerSocketService {
     });
 
     this.sub = this.socket.subscribe({
-      next: msg => this.zone.run(() => (this.latest as any).set?.(msg)),
+      next: msg => this.zone.run(() => {
+        console.log(msg)
+        //(this.latest as any).set?.(msg);
+        if (msg.type === "state") {
+          this._latest.set(msg);
+        } else if (msg.type === "event") {
+          this._imperative.set(msg);
+        }
+        
+      }),
       error: err => console.error('WS error (st)', err),
       complete: () => console.log('WS complete (st)')
     });
@@ -61,6 +76,9 @@ export class StoryTellerSocketService {
     this.sub = undefined;
     this.socket = undefined;
     this.currentGid = undefined;
-    (this.latest as any).set?.(null);
+    
+    this._latest.set(null)
+    this._imperative.set(null)
+
   }
 }

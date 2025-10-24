@@ -28,7 +28,6 @@ export class SpectatorSocketService {
     this.currentGid = gid;
 
     const url = `${environment.botc_service_ws}/${gid}/room`;
-    console.log(url);
 
     let opened!: () => void;
     const openedPromise = new Promise<void>(res => (opened = res));

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import List, Set, Dict
 
+from botc.messages import spectator_joined_message, player_taken_seat, player_vacated_seat
 from botc.model import RoomInfo, Player, Spectator
 from botc.scripts import Script, TB_ROLE_GROUPS
 from botc.view import view_for_player, view_for_storyteller, view_for_room
@@ -159,18 +160,17 @@ class GameRoom:
 
     # broadcast helpers
 
-    def _send_to_storyteller(self, payload: dict):
-        if self.storyteller:
-            self.storyteller.send({"type": "state", "view": view_for_storyteller(self.game, self)})
-    """
-    def _send_to_storyteller(self, payload: dict):
-        if self.storyteller:
-            # send the prompt (or whatever payload) as-is
-            self.storyteller.send(payload)
-    """
+    def _send_to_storyteller(self, msg: str):
+        import json
+        if not self.storytellerSocket:
+            return
+        if isinstance(msg, str):
+            self.storytellerSocket.write_message(msg)
+        else:
+            self.storytellerSocket.write_message(json.dumps(msg))
 
     def broadcast(self):
-        # players
+        #Are we just broadchasting the room state?
         for pid, socks in list(self.player_sockets.items()):
             msg = {"type": "state", "view": view_for_player(self.game, pid, self)}
             dead = []
@@ -248,7 +248,6 @@ class GameRoom:
             return False
 
     def join_unseated(self, spectator_id, spectator_name: str) -> dict | None:
-        """Add a player record with no seat yet."""
         if self.info.status != "open":
             return None
 
@@ -257,6 +256,11 @@ class GameRoom:
                 and not self.is_player(pid=spectator_id):
             spectator = Spectator(id=spectator_id, name=spectator_name)
             self.spectators.append(spectator)
+
+            msg = spectator_joined_message(self.info.gid, spectator_id, spectator_name)
+            self._send_to_storyteller(msg)
+            self.broadcast()
+
         return {"id": spectator_id, "name": spectator_name}
 
     def leave(self, player_id: int) -> tuple[bool, str | None]:
@@ -322,6 +326,11 @@ class GameRoom:
             self.players = []
         self.players.append(player)
 
+        msg = player_taken_seat(self.info.gid, spectator.id, spectator.name, seat_no)
+
+        self._send_to_storyteller(msg)
+        self.broadcast()
+
         return True, None
 
     def vacate(self, pid: int, seat_no: int) -> tuple[bool, str | None]:
@@ -359,6 +368,10 @@ class GameRoom:
         # remove from players list if present
         if hasattr(self, "players"):
             self.players = [p for p in self.players if p.id != pid]
+
+        msg = player_vacated_seat(self.info.gid, player.id, player.name, seat_no)
+        self._send_to_storyteller(msg)
+        self.broadcast()
 
         return True, None
 
