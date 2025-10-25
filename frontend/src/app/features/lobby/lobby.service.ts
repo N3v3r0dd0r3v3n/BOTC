@@ -17,7 +17,7 @@ export class LobbyService {
         headers: new HttpHeaders({ 'Content-Type': 'application/json' })
     };
 
-    getRooms(): Observable<LobbyResponse> {
+    getLobby(): Observable<LobbyResponse> {
         return this.http.get<LobbyResponse>(this.baseUrl, this.httpOptions);
     }
 }

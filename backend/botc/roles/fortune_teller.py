@@ -22,9 +22,11 @@ class FortuneTeller:
 
     def on_night(self, g: Game):
         me = g.player(self.owner)
-        if not me.alive: return
+        if not me.alive:
+            return
         others = g.alive_others(self.owner)
-        if len(others) < 2: return
+        if len(others) < 2:
+            return
 
         cand_ids = [p.id for p in others]
         pick = g.prompt.choose_two(self.owner, cand_ids, "Choose two players")

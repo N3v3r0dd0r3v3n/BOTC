@@ -7,7 +7,7 @@ from botc.request_handlers.lobby_handler import LobbyHandler
 from botc.request_handlers.lobby_room_handler import LobbyRoomHandler
 from botc.request_handlers.seats_handler import SeatsHandler
 from botc.request_handlers.sit_handler import SitHandler
-from botc.request_handlers.start_room_handler import StartRoomHandler
+from botc.request_handlers.start_game_handler import StartGameHandler
 from botc.request_handlers.step_handler import StepHandler
 from botc.request_handlers.vacate_handler import VacateHandler
 from botc.socket_handlers.player_handler import PlayerSocket
@@ -22,7 +22,7 @@ def http_routes():
         # Specific room actions FIRST (gid is a single path segment)
         url(r"/api/rooms/([^/]+)/join", JoinRoomHandler, name="room-join"),
         url(r"/api/rooms/([^/]+)/leave", LeaveRoomHandler, name="room-leave"),
-        url(r"/api/rooms/([^/]+)/start", StartRoomHandler, name="room-start"),
+        url(r"/api/rooms/([^/]+)/start", StartGameHandler, name="room-start"),
         url(r"/api/rooms/([^/]+)/seats", SeatsHandler, name="room-seats"),
         url(r"/api/rooms/([^/]+)/sit", SitHandler, name="room-sit"),
         url(r"/api/rooms/([^/]+)/vacate", VacateHandler, name="room-vacate"),

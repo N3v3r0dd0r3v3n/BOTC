@@ -26,8 +26,6 @@ export class RoomViewComponent implements OnInit {
 
   public storytellerLogs:string[] = [];
 
-  public room = "Hello room"
-
   public isSeated = false;
   private isST = false;
 
@@ -43,6 +41,7 @@ export class RoomViewComponent implements OnInit {
   ) {
 
     let initialised = false;
+
     effect(() => {
       const msg = this.storytellerSocket.imperative();
 
@@ -74,6 +73,7 @@ export class RoomViewComponent implements OnInit {
     });
 
     /*
+    don't uncomment me yet
     effect(() => {
       const s = this.playerSocket.state();
       if (this.isST || !this.isSeated) return;        // player only when seated (and not ST)
@@ -167,8 +167,12 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
   }
 
   setupGame(): void {
-    const gid = this.latest()?.view?.room?.gid;
-    if (gid) void firstValueFrom(this.roomService.startGame(gid));
+    alert("Starting game")
+    const gid = this.getRoomId();
+    if (gid) {
+      const response = firstValueFrom(this.roomService.startGame(gid));
+      console.log(response);
+    }
   }
 
   sendPing(): void {
@@ -192,7 +196,7 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
       return;
     }
     this.isSeated = true;
-    const roomId = this.roomId();
+    const roomId = this.getRoomId();
 
     await firstValueFrom(this.roomService.sit(roomId, seat));
 
@@ -213,7 +217,7 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
       return;
     }
     this.isSeated = false;
-    const roomId = this.roomId();
+    const roomId = this.getRoomId();
     
     await firstValueFrom(this.roomService.vacate(roomId, seat));
 
@@ -243,12 +247,24 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
 
   isStoryTeller(): boolean {
     const v = safeParse(localStorage.getItem('visitor') || '{}') || {};
-    const roomSt = this.latest()?.view?.room?.story_teller_id ?? this.latest()?.view?.room?.storyteller_id;
+    const roomSt = this.getRoom().story_teller_id ?? this.getRoom().storyteller_id;
     return !!roomSt && roomSt === v?.id;
   }
 
+  getRoom() { 
+    return this.latest()?.view?.info ?? null; 
+  }
+
+  getSeats() { 
+    return this.latest()?.view?.seats ?? []; 
+  }
+
+  getSpectators() { 
+    return this.latest()?.view?.spectators ?? []; 
+  }
+
   private updateSeatCount(seatCount: number) {
-    const gid = this.latest()?.view?.room?.gid;
+    const gid = this.getRoomId();
     if (gid) return firstValueFrom(this.roomService.updateSeatCount(gid, seatCount));
     return Promise.resolve();
   }
@@ -258,12 +274,9 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
     return visitor.id;
   }
 
-  private roomId() {
+  private getRoomId() {
     return this.getRoom().gid;
   }
-
-  private getRoom() { return this.latest()?.view?.room ?? null; }
-  public  getSeats() { return this.latest()?.view?.seats ?? []; }
 }
 
 function safeParse(s: string) {

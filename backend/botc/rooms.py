@@ -3,15 +3,15 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import List, Set, Dict
 
-from botc.messages import spectator_joined_message, player_taken_seat, player_vacated_seat
-from botc.model import RoomInfo, Player, Spectator
-from botc.scripts import Script, TB_ROLE_GROUPS
+from botc.messages import spectator_joined_message, player_taken_seat, player_vacated_seat, player_left_message, \
+    role_assigned_info_message
+from botc.model import RoomInfo, Game
+from botc.scripts import Script
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus
 from botc.model import Player
 from botc.model import Spectator
-from botc.ws.ws_prompt import WsPrompt
-import random
+
 
 
 class GameRoom:
@@ -30,11 +30,6 @@ class GameRoom:
         self.players: List[Player] = []
         self.seats = [{"seat": i + 1, "occupant": None} for i in range(initial_seat_count)]
         self.game = None
-        # install WsPrompt
-        """
-        if self.game is not None:
-            self.game.prompt = WsPrompt(self._send_to_storyteller, self.bus)
-        """
 
         self.room_viewers: Set["RoomViewerSocket"] = set()
         self.player_sockets = defaultdict(set)
@@ -73,6 +68,7 @@ class GameRoom:
                     self.seats.pop(i)
                     break
 
+        self.broadcast()
         return True, None
 
     def is_full(self) -> bool:
@@ -87,35 +83,40 @@ class GameRoom:
         self.game.players.append(p)
         return {"id": p.id, "seat": p.seat, "name": p.name}
 
-    def build_role_deck(self) -> list[str]:
-        counts = self.script.role_counts.get(len(self.players))
-        if not counts:
-            raise ValueError(f"Unsupported player count: {len(self.players)}")
+    def start_game(self):
 
-        # Safety checks
-        for k in ("townsfolk", "outsiders", "minions", "demons"):
-            need = counts.get(k, 0)
-            have = len(TB_ROLE_GROUPS[k])
-            if need > have:
-                raise ValueError(f"Not enough roles in group '{k}': need {need}, have {have}")
+        if len(self.players) >= self.min_residents:
+            self.seats = [seat for seat in self.seats if seat["occupant"] if not None]  #Remove empty seats
 
-        deck = []
-        deck += random.sample(TB_ROLE_GROUPS["townsfolk"], counts["townsfolk"])
-        deck += random.sample(TB_ROLE_GROUPS["outsiders"], counts["outsiders"])
-        deck += random.sample(TB_ROLE_GROUPS["minions"], counts["minions"])
-        deck += random.sample(TB_ROLE_GROUPS["demons"], counts["demons"])
+            slots = [seat["occupant"].id for seat in self.seats if seat["occupant"] ]
+            players = [player for player in self.players]
 
-        if len(deck) != len(self.players):
-            raise AssertionError("Role deck size does not match player count")
+            self.game = Game(slots=slots, players=players, script=self.script)
+            self.info.status = "started"
+            roles_by_slot = self.game.roles_by_slot
 
-        random.shuffle(deck)
-        return deck
+            for pid, socks in list(self.player_sockets.items()):
+                role = roles_by_slot[pid]
+                msg = role_assigned_info_message(gid=self.info.gid, role_name=role.id, meta="hurrah")
+                dead = []
+                for sock in list(socks):
+                    try:
+                        sock.send(msg)
+                        pass
+                    except Exception:
+                        dead.append(sock)
+                for d in dead:
+                    socks.discard(d)
+                if not socks:
+                    del self.player_sockets[pid]
+                if role and hasattr(role, "on_setup"):
+                    role.on_setup(g=self.game)
 
-    def setup_game(self):
-        deck = self.build_role_deck()
-        print(deck)
+            return g
+
         return True
 
+    """
     def start_game(self, role_names: List[str] | None = None):
         import random
         from botc.scripts import ROLE_REGISTRY
@@ -159,6 +160,7 @@ class GameRoom:
         return True
 
     # broadcast helpers
+    """
 
     def _send_to_storyteller(self, msg: str):
         import json
@@ -215,19 +217,6 @@ class GameRoom:
     # ----- capacity & seating -----
     def seats_used(self) -> int:
         return sum(1 for p in self.game.players if p.seat is not None)
-
-    """
-    def seat_map(self) -> list[dict]:
-        #Return seat list 1..max_players with occupant info (or None).
-        seats = []
-        for n in range(1, self.info.max_players + 1):
-            occ = next((p for p in self.game.players if p.seat == n), None)
-            seats.append({
-                "seat": n,
-                "occupant": None if not occ else {"id": occ.id, "name": occ.name}
-            })
-        return seats
-    """
 
     def player_by_id(self, pid: int):
         return next((p for p in self.players if p.id == pid), None)
@@ -294,6 +283,10 @@ class GameRoom:
         if hasattr(self, "players"):
             self.players = [p for p in self.players if p.id != player_id]
 
+        msg = player_left_message(self.info.gid, player.id, player.name, seat_no)
+        self._send_to_storyteller(msg)
+
+        self.broadcast()
         return True, None
 
     def sit(self, sid: int, seat_no: int) -> tuple[bool, str | None]:
@@ -327,7 +320,6 @@ class GameRoom:
         self.players.append(player)
 
         msg = player_taken_seat(self.info.gid, spectator.id, spectator.name, seat_no)
-
         self._send_to_storyteller(msg)
         self.broadcast()
 

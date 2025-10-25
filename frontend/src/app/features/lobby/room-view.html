@@ -1,6 +1,6 @@
 <h2>Room details</h2>
 
-{{room}}
+{{ latest() | json}}
 
 <div *ngIf="latest(); else waiting">
 
@@ -10,18 +10,18 @@
         <h4>You are the storyteller!!!!</h4>
     }
 
-    <pre>Room: {{ latest().view.room.name }}</pre>
-    <pre>Story teller: {{ latest().view.room.storyteller_name }}</pre>
-    <pre>Script: {{ latest().view.room.script_name }}</pre>
-    <pre>Status: {{ latest().view.room.status }}</pre>
+    <pre>Room: {{ getRoom().name }}</pre>
+    <pre>Story teller: {{ getRoom().storyteller_name }}</pre>
+    <pre>Script: {{ getRoom().script_name }}</pre>
+    <pre>Status: {{ getRoom().status }}</pre>
     <pre>Seats</pre>
 
-    <span *ngFor="let seat of latest().view.seats">
+    <span *ngFor="let seat of getSeats()">
         <div>
             {{seat.seat}}
             @if (seat.occupant) {
                 {{ seat.occupant.name }}
-                @if (isMySeat(seat)) {
+                @if (isMySeat(seat)) {    <!-- And game is "open"-->
                     <span><button type="submit" (click)="vacate(seat.seat)">Vacate chair</button></span>
                 }
             } @else {
@@ -44,11 +44,9 @@
         <button type="submit" (click)="setupGame()" [disabled]="hasMinimumPlayers()">Prepare bag</button>
     }
 
-
-
     <pre>Spectators</pre>
 
-    <span *ngFor="let spec of latest().view.spectators">
+    <span *ngFor="let spec of getSpectators()">
         {{ spec.name }}
     </span>
 

@@ -24,7 +24,6 @@ class SeatsHandler(BaseHandler):
             self.write({"error": err, "seats": len(room.seats)})
             return
 
-        room.broadcast()
         self.write({
             "ok": True
         })

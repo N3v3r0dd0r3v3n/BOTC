@@ -18,7 +18,7 @@ import { RoomService } from "./room.service";
 })
 export class Lobby implements OnInit {
 
-  public rooms = signal<Room[]>([]);
+  public lobby = signal<Room[]>([]);
 
   constructor(
     private lobbyService: LobbyService,
@@ -31,8 +31,8 @@ export class Lobby implements OnInit {
   
   public async getLobby() {
     try {
-      const response = await firstValueFrom(this.lobbyService.getRooms());
-      this.rooms.set(response.rooms);
+      const response = await firstValueFrom(this.lobbyService.getLobby());
+      this.lobby.set(response.lobby);
     } catch (err) {
       console.error('Failed to get rooms:', err);
     }

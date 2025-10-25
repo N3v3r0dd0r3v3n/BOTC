@@ -23,5 +23,5 @@ class VacateHandler(BaseHandler):
             self.set_status(409)
             self.write({"error": err})
             return
-        room.broadcast()
+
         self.write({"ok": True})

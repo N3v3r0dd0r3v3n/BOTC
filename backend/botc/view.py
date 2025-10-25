@@ -3,8 +3,6 @@ from dataclasses import asdict
 from botc.model import Game
 
 
-
-
 def view_for_room(room):
     seats_view = [
         {
@@ -21,7 +19,7 @@ def view_for_room(room):
         for s in room.seats
     ]
     return {
-        "room": asdict(room.info),
+        "info": asdict(room.info),
         "seats": seats_view,
         "spectators": [{"id": s.id, "name": s.name} for s in room.spectators],
         "players": len(room.players)
@@ -47,7 +45,7 @@ def view_for_player(g: Game, player_id: int, room) -> dict:
                 "ghost": you.ghost_vote_available,
                 "role": {"id": getattr(you.role, "id", None)} if (you.role and room.info.status != "open") else None
             },
-            #"seats": room.seat_map(),  # <-- seat list 1..max with occupants
+            # "seats": room.seat_map(),  # <-- seat list 1..max with occupants
             "status": room.info.status,  # open | started | finished
             "wankmeoff": "Hello Player"
         }

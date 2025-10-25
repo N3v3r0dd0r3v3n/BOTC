@@ -22,8 +22,11 @@ class StorytellerSocket(tornado.websocket.WebSocketHandler):
             return
         self.room = room
         room.storytellerSocket = self
-        self.send({"type": "state",
-                   "view": view_for_storyteller(None, room)})
+        self.send({
+            "type": "state",
+            "view": view_for_storyteller(None, room)
+        })
+
         room.broadcast()
 
     def on_message(self, message):

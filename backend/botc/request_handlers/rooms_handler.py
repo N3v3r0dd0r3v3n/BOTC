@@ -11,7 +11,6 @@ from botc.scripts import trouble_brewing_script
 
 class RoomsHandler(BaseHandler):
     def post(self):
-        # create room: {name, script, initial_seat_count}
         body = json.loads(self.request.body or b"{}")
         creator = body.get("creator")
 
@@ -30,6 +29,5 @@ class RoomsHandler(BaseHandler):
         self.write({
             "gid": gid,
             "room": asdict(room.info),
-            "seats": room.seats,
-            #"seats": [{"seat": s.seat, "occupant": s.occupant} for s in room.seats],
+            "seats": room.seats
         })

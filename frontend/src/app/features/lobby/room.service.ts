@@ -78,6 +78,8 @@ export class RoomService {
   }
 
   startGame(roomId: string) {
+    console.log("Starting game " + roomId);
+    console.log(`On ${this.baseUrl}/${roomId}/start`)
     return this.http.post<any>(`${this.baseUrl}/${roomId}/start`, this.httpOptions)
   }
 

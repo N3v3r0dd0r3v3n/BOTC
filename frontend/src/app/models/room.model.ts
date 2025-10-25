@@ -5,16 +5,18 @@ export interface Player {
 }
 
 export interface Room {
-  gid: string;
-  name: string;
-  story_teller_id: number;
-  story_teller_name: string;
-  script_name: string;
-  status: 'open' | 'started' | 'finished';
+  info: {
+    gid: string;
+    name: string;
+    story_teller_id: number;
+    story_teller_name: string;
+    script_name: string;
+    status: 'open' | 'started' | 'finished';
+  }
 }
 
 export interface LobbyResponse {
-  rooms: Room[];
+  lobby: Room[];
 }
 
 export interface RoomStateResponse {

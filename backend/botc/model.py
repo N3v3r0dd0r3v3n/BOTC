@@ -1,7 +1,8 @@
 from __future__ import annotations
+
+import random
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from math import floor
 from typing import Optional, List, Dict
 
 from botc.prompt import AutoPrompt
@@ -71,10 +72,11 @@ class RoomInfo:
     status: str = "open"  # open | started | finished
 
 
-
 @dataclass
 class Game:
+    slots: List[str]
     players: List[Player]
+    roles_by_slot: dict[int, str] = field(default_factory=dict)
     phase: Phase = Phase.SETUP
     night: int = 0
     pending_dawn: List[int] = field(default_factory=list)
@@ -91,9 +93,50 @@ class Game:
     night_protected: set[int] = field(default_factory=set)  # cleared at start of each night
     last_executed_pid: int | None = None
 
-    def player(self, pid: int) -> Player:
-        return next(p for p in self.players if p.id == pid)
+    def __post_init__(self):
+        print(sorted(ROLE_REGISTRY.keys()))
 
+        deck = self._build_role_deck()
+        for role, slot in zip(deck, self.slots):
+            self.roles_by_slot[slot] = role
+            player = self.player(slot)
+            player.role = role
+
+    def _build_role_deck(self) -> list[str]:
+        import importlib, pkgutil, botc.roles
+
+        # dynamically import role modules without touching roles.__init__ imports
+        for _, modname, _ in pkgutil.iter_modules(botc.roles.__path__, prefix="botc.roles."):
+            importlib.import_module(modname)
+        counts = self.script.role_counts.get(len(self.players))
+        if not counts:
+            raise ValueError(f"Unsupported player count: {len(self.players)}")
+
+        # Safety checks
+        for k in ("townsfolk", "outsiders", "minions", "demons"):
+            need = counts.get(k, 0)
+            have = len(self.script.role_groups[k])
+            if need > have:
+                raise ValueError(f"Not enough roles in group '{k}': need {need}, have {have}")
+
+        role_selections = []
+        role_selections += random.sample(self.script.role_groups["townsfolk"], counts["townsfolk"])
+        role_selections += random.sample(self.script.role_groups["outsiders"], counts["outsiders"])
+        role_selections += random.sample(self.script.role_groups["minions"], counts["minions"])
+        role_selections += random.sample(self.script.role_groups["demons"], counts["demons"])
+
+        if len(role_selections) != len(self.players):
+            raise AssertionError("Role deck size does not match player count")
+
+        deck = [ROLE_REGISTRY.get(role)() for role in role_selections]
+
+        random.shuffle(deck)
+        return deck
+
+
+    def player(self, pid: str) -> Player:
+        return next(p for p in self.players if p.id == pid)
+    """
     def alive_players(self) -> List[Player]:
         return [p for p in self.players if p.alive]
 
@@ -229,7 +272,7 @@ class Game:
         self.log.append(f"{p.name} is executed at dusk")
 
     def mark_dead(self, pid: int, cause: str):
-        """Mark a player dead, grant ghost vote, call hooks, and handle specials."""
+        #Mark a player dead, grant ghost vote, call hooks, and handle specials.
         p = self.player(pid)
         if not p.alive:
             return  # already dead; ignore duplicates
@@ -268,7 +311,7 @@ class Game:
                 p.role.on_day_start(self)
 
     def finish_day(self):
-        """Execute highest on the block if any (ties = no execution)."""
+        #Execute highest on the block if any (ties = no execution).
         if self.executed_today is not None:
             return  # already executed via immediate effect or earlier
         n = self.best_nomination
@@ -293,7 +336,7 @@ class Game:
         return False
 
     def is_poisoned_like(self, pid: int) -> bool:
-        """Treat Drunk as 'poisoned' for ability correctness."""
+        #Treat Drunk as 'poisoned' for ability correctness.
         player = self.player(pid)
         return self.is_poisoned(pid) or getattr(player.role, "id", "") == "Drunk"
 
@@ -301,7 +344,7 @@ class Game:
         self.night_protected.add(pid)
 
     def demon_attack(self, target_pid: int):
-        """Demon attempts to kill target at night."""
+        #Demon attempts to kill target at night.
         target = self.player(target_pid)
         if not target.alive:
             return
@@ -326,7 +369,6 @@ class Game:
             if role_name not in ROLE_REGISTRY:  # skip unimplemented
                 continue
             g.assign_role(seat, ROLE_REGISTRY[role_name]())
+    """
 
 
-# simple in-memory registry
-#rooms: Dict[str, RoomInfo] = {}

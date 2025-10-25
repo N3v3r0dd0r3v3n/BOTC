@@ -1,12 +1,9 @@
 <button (click)="createRoom()">Create Room</button>
 
 <ul>
-  <li *ngFor="let r of rooms()">
-    <a [routerLink]="['/room', r.gid]">
-      {{ r.name }} 
-    </a> {{r.status}}
+  <li *ngFor="let room of lobby()">
+    <a [routerLink]="['/room', room.info.gid]">
+      {{ room.info.name }} 
+    </a> {{room.info.status}}
   </li>
 </ul>
-
-<!-- Keep your JSON dump if you like -->
-<pre>{{ rooms | json }}</pre>
