@@ -34,7 +34,7 @@ def view_for_player(g: Game, player_id: int, room) -> dict:
     if g:
         you = next((p for p in g.players if p.id == player_id), None)
         if you:
-            base['player'] =  {
+            base['player'] = {
                 "phase": g.phase.name,
                 "night": g.night,
                 "you": None if not you else {

@@ -9,11 +9,18 @@ import { RoomService } from './room.service';
 import { PlayerSocketService } from './player-socket.service';
 import { StoryTeller } from "../../components/story-teller/story-teller";
 import { Player } from "../../components/player/player";
+import { Spectators } from "../../components/spectators/spectators";
+import { MatCard, MatCardModule } from "@angular/material/card";
+import { MatButtonModule } from '@angular/material/button';
+import { Seats } from "../../components/seats/seats";
 
 @Component({
   standalone: true,
   selector: 'app-room-view',
-  imports: [CommonModule, StoryTeller, Player],
+  imports: [
+    CommonModule, StoryTeller, Player, Spectators, MatCard, MatCardModule, MatButtonModule,
+    Seats
+],
   templateUrl: './room-view.html',
   styleUrl: './room-view.css',
   providers: [
@@ -183,16 +190,11 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
     this.cd.detectChanges();
   }
 
-  hasMinimumPlayers(): boolean {
-    const players = this.latest()?.view?.players ?? [];
-    return players.length < 5;
-  }
-
   setupGame(): void {
     alert("Starting game")
-    const gid = this.getRoomId();
-    if (gid) {
-      const response = firstValueFrom(this.roomService.startGame(gid));
+    const rid = this.getRoomId();
+    if (rid) {
+      const response = firstValueFrom(this.roomService.startGame(rid));
       console.log(response);
     }
   }
@@ -294,6 +296,11 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
   private myId() {
     const visitor = safeParse(localStorage.getItem('visitor') || '{}') || {};
     return visitor.id;
+  }
+
+  public getVisitor() {
+    const visitor = JSON.parse(localStorage.getItem('visitor')!);
+    return visitor
   }
 
   private getRoomId() {

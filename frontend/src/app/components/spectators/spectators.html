@@ -1,0 +1,8 @@
+
+@for (spec of spectators; track spec.id ?? $index) {
+    <span>
+        {{ spec.name }}
+    </span>
+} @empty {
+    <p>No spectators</p>
+}

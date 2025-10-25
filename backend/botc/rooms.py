@@ -83,7 +83,7 @@ class GameRoom:
         self.game.players.append(p)
         return {"id": p.id, "seat": p.seat, "name": p.name}
 
-    def start_game(self):
+    def start_game(self, room):
 
         if len(self.players) >= self.min_residents:
             self.seats = [seat for seat in self.seats if seat["occupant"] if not None]  #Remove empty seats
@@ -91,6 +91,7 @@ class GameRoom:
             slots = [seat["occupant"].id for seat in self.seats if seat["occupant"] ]
             players = [player for player in self.players]
 
+            #Remove setup once I am happy that I've got it working correctly.
             self.game = Game(
                 slots=slots,
                 players=players,
@@ -98,7 +99,17 @@ class GameRoom:
                 _emit=self._on_event)
 
             self.info.status = "started"
+            self.game.step()
+
+
+
+            # This is a bit hacky.  But we'll go for it whilst we are getting shit to work.
+            view = view_for_storyteller(self.game, room)
+            self.send_to_storyteller(view)
+            # End hack
             self.broadcast()
+
+            """
 
             roles_by_slot = self.game.roles_by_slot
 
@@ -118,7 +129,7 @@ class GameRoom:
                     del self.player_sockets[pid]
                 if role and hasattr(role, "on_setup"):
                     role.on_setup(self.game)
-
+            """
         return True
 
     """
@@ -179,7 +190,7 @@ class GameRoom:
     #Should broadcast send to story_teller too?  Should broadcast have the message?
     #Oh I am so confused...
     def broadcast(self):
-        #Are we just broadchasting the room state?
+        #Broadcast game state
         for pid, socks in list(self.player_sockets.items()):
             msg = {"type": "state", "view": view_for_player(self.game, pid, self)}
             dead = []

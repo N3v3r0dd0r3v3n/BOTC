@@ -158,6 +158,7 @@ class Game:
 
     def step(self):
         if self.phase == Phase.SETUP:
+            print("Setting up game")
             self.phase = Phase.NIGHT
             self.night = 1
         elif self.phase == Phase.NIGHT:
