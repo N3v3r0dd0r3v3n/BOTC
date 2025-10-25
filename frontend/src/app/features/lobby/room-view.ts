@@ -27,7 +27,9 @@ export class RoomViewComponent implements OnInit {
   public storytellerLogs:string[] = [];
 
   public isSeated = false;
+  public role = null;
   private isST = false;
+
 
 
   constructor(
@@ -43,7 +45,12 @@ export class RoomViewComponent implements OnInit {
     let initialised = false;
 
     effect(() => {
-      const msg = this.storytellerSocket.imperative();
+      let msg = null;
+      if (this.isST) {
+        msg = this.storytellerSocket.imperative();
+      } else {
+        msg = this.playerSocket.imperative();
+      }
 
       if (!initialised) {                   // skip the first run
         initialised = true;
@@ -53,8 +60,10 @@ export class RoomViewComponent implements OnInit {
       //PLAYER_TAKEN_SEAT = "PlayerTakenSeat"
       //PLAYER_VACATED_SEAT = "PlayerVacatedSeat"
       
-      if (this.isST && msg != null) {
-        if (msg.type == "event") {
+      if (msg != null) {
+        console.log(msg);
+        let message = null;
+        if (msg.type == "event" && this.isST) {
           let details = "";
           const spectator_name = msg.data.spectator_name;
           if (msg.kind == "SpectatorJoined") {
@@ -64,10 +73,21 @@ export class RoomViewComponent implements OnInit {
           } else if (msg.kind == "PlayerVacatedSeat") {
             details = `has vacated seat ${msg.data.seat} and is now spectating`;
           }
-          const message = `${spectator_name} ${details}`
-          this.storytellerLogs.push(message)
+          message = `${spectator_name} ${details}`
+        }
+
+        if (msg.type == "info") {
+          //message = `You are the ${msg.data.role_name}`
+          this.role = msg.data.role_name;
+        }
+        if (message) {
           alert(message)
         }
+
+        if (this.isST) {
+          this.storytellerLogs.push(message!)
+        }
+        
       }
 
     });

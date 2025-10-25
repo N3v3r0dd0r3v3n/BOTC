@@ -3,11 +3,13 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Callable, Any
 
 from botc.prompt import AutoPrompt
 from botc.scripts import Script
 from botc.scripts import ROLE_REGISTRY
+
+Noop = lambda ev: None
 
 
 class Team(Enum):
@@ -72,6 +74,12 @@ class RoomInfo:
     status: str = "open"  # open | started | finished
 
 
+@dataclass(frozen=True)
+class DomainEvent:
+    type: str  # e.g. "NominationStarted", "VirginTriggered", "PlayerExecuted"
+    data: Dict[str, Any]  # payload
+
+
 @dataclass
 class Game:
     slots: List[str]
@@ -92,6 +100,12 @@ class Game:
     executed_today: Optional[int] = None  # seat id executed (only once per day)
     night_protected: set[int] = field(default_factory=set)  # cleared at start of each night
     last_executed_pid: int | None = None
+    _emit: Callable[[DomainEvent], None] = Noop
+
+    """
+    def attach_emitter(self, emit: Callable[[DomainEvent], None]) -> None:
+        self._emit = emit
+    """
 
     def __post_init__(self):
         print(sorted(ROLE_REGISTRY.keys()))
@@ -101,6 +115,9 @@ class Game:
             self.roles_by_slot[slot] = role
             player = self.player(slot)
             player.role = role
+
+        # Remove this later.  For now I just want to check that DomainEvents are emitted.
+        self._emit(DomainEvent("PlayerExecuted", {"message": "Test message"}))
 
     def _build_role_deck(self) -> list[str]:
         import importlib, pkgutil, botc.roles
@@ -133,13 +150,13 @@ class Game:
         random.shuffle(deck)
         return deck
 
-
     def player(self, pid: str) -> Player:
         return next(p for p in self.players if p.id == pid)
-    """
+
     def alive_players(self) -> List[Player]:
         return [p for p in self.players if p.alive]
 
+    """
     def alive_others(self, pid: int) -> List[Player]:
         return [p for p in self.alive_players() if p.id != pid]
 
@@ -370,5 +387,7 @@ class Game:
                 continue
             g.assign_role(seat, ROLE_REGISTRY[role_name]())
     """
+
+
 
 

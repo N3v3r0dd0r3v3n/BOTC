@@ -5,7 +5,7 @@ from typing import List, Set, Dict
 
 from botc.messages import spectator_joined_message, player_taken_seat, player_vacated_seat, player_left_message, \
     role_assigned_info_message
-from botc.model import RoomInfo, Game
+from botc.model import RoomInfo, Game, DomainEvent
 from botc.scripts import Script
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus
@@ -91,8 +91,15 @@ class GameRoom:
             slots = [seat["occupant"].id for seat in self.seats if seat["occupant"] ]
             players = [player for player in self.players]
 
-            self.game = Game(slots=slots, players=players, script=self.script)
+            self.game = Game(
+                slots=slots,
+                players=players,
+                script=self.script,
+                _emit=self._on_event)
+
             self.info.status = "started"
+            self.broadcast()
+
             roles_by_slot = self.game.roles_by_slot
 
             for pid, socks in list(self.player_sockets.items()):
@@ -110,9 +117,7 @@ class GameRoom:
                 if not socks:
                     del self.player_sockets[pid]
                 if role and hasattr(role, "on_setup"):
-                    role.on_setup(g=self.game)
-
-            return g
+                    role.on_setup(self.game)
 
         return True
 
@@ -327,9 +332,6 @@ class GameRoom:
 
     def vacate(self, pid: int, seat_no: int) -> tuple[bool, str | None]:
 
-        if self.info.status != "open":
-            return False, "room_not_open"
-
         if not (1 <= seat_no <= len(self.seats)):
             return False, "invalid_seat"
 
@@ -405,6 +407,31 @@ class GameRoom:
                 for s in self.seats
             ],
         }
+
+    def _on_event(self, ev: DomainEvent):
+
+        print(ev.data)
+        print(self)  #Just to stop it complaining about being static
+        """if ev.type == "NominationStarted":
+            self._send_to_storyteller(event_envelope(self.gid, "NominationStarted", ev.data))
+            self.broadcast()
+
+        elif ev.type == "VirginTriggered":
+            # ST gets explicit Virgin trigger
+            self._send_to_storyteller(event_envelope(self.gid, "VirginTriggered", ev.data))
+
+        elif ev.type == "PlayerExecuted":
+            pid = ev.data["player_id"]
+            msg = player_executed_message(self.gid, pid, ev.data.get("reason"))
+            self._broadcast_all(msg)      # everyone can know execution (no role leakage)
+            self.broadcast()              # refresh state
+
+        elif ev.type == "NominationClosed":
+            self._send_to_storyteller(event_envelope(self.gid, "NominationClosed", ev.data))
+            self.broadcast()
+
+        elif ev.type == "NominationOpenForVoting":
+            self._broadcast_all(event_envelope(self.gid, "NominationOpenForVoting", ev.data))"""
 
 
 rooms: Dict[str, GameRoom] = {}

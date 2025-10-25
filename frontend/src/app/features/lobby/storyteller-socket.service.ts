@@ -5,8 +5,7 @@ import { environment } from '../../environments/environment';
 
 @Injectable()
 export class StoryTellerSocketService {
-  //public latest: Signal<any | null> = signal<any | null>(null);
-  public readonly lastMessage: Signal<any | null> = signal<any | null>(null);
+  //public readonly lastMessage: Signal<any | null> = signal<any | null>(null);
 
   private readonly _latest: WritableSignal<any | null> = signal<any | null>(null);
   public readonly latest = this._latest.asReadonly();
@@ -32,7 +31,6 @@ export class StoryTellerSocketService {
     this.currentGid = gid;
 
     const url = `${environment.botc_service_ws}/${gid}/st`;
-
     let opened!: () => void;
     const openedPromise = new Promise<void>(res => (opened = res));
 
@@ -41,7 +39,12 @@ export class StoryTellerSocketService {
       deserializer: e => JSON.parse((e as MessageEvent).data as string),
       serializer: v => JSON.stringify(v),
       openObserver: { next: () => opened() },
-      closeObserver: { next: ev => console.log('WS closed (st)', gid, ev) }
+      closeObserver: { 
+        next: ev => { 
+          console.log('WS closed (st)', gid, ev)
+          console.log("Do something here.  If the storyteller goes then we are probably fucked!");
+        }
+      }
     });
 
     this.sub = this.socket.subscribe({
@@ -53,7 +56,6 @@ export class StoryTellerSocketService {
         } else if (msg.type === "event") {
           this._imperative.set(msg);
         }
-        
       }),
       error: err => console.error('WS error (st)', err),
       complete: () => console.log('WS complete (st)')

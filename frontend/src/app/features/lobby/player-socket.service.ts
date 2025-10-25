@@ -1,12 +1,15 @@
 // player-socket.service.ts
-import { DestroyRef, Injectable, NgZone, Signal, signal } from '@angular/core';
+import { DestroyRef, Injectable, NgZone, Signal, signal, WritableSignal } from '@angular/core';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { Subscription } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 @Injectable()
 export class PlayerSocketService {
-  public readonly latest: Signal<any | null> = signal<any | null>(null);
+  private readonly _latest: WritableSignal<any | null> = signal<any | null>(null);
+  public readonly latest = this._latest.asReadonly();
+  private readonly _imperative: WritableSignal<any | null> = signal<any | null>(null);
+  public readonly imperative = this._imperative.asReadonly();
 
   private socket?: WebSocketSubject<any>;
   private sub?: Subscription;
@@ -45,7 +48,14 @@ export class PlayerSocketService {
     });
 
     this.sub = this.socket.subscribe({
-      next: msg => this.zone.run(() => (this.latest as any).set?.(msg)),
+      next: msg => this.zone.run(() => {
+        console.log(msg);
+        if (msg.type === "state") {
+          this._latest.set(msg)
+        } else {
+          this._imperative.set(msg)
+        }
+      }),
       error: err => console.error('WS error (player)', err),
       complete: () => console.log('WS complete (player)')
     });

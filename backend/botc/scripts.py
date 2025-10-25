@@ -25,7 +25,7 @@ def trouble_brewing_script() -> Script:
     return Script(
         name="Trouble Brewing",
         first_night=[
-            "Poisoner", "Spy", "Washerwoman", "Librarian", "Investigator", "Chef", "Empath",
+            "Poisoner", "Spy", "Washer Woman", "Librarian", "Investigator", "Chef", "Empath",
             "Fortune Teller", "Butler"
         ],
         other_nights=[
@@ -33,13 +33,13 @@ def trouble_brewing_script() -> Script:
             "Empath", "Fortune Teller", "Butler"
         ],
         roles=[
-            "Washerwoman", "Librarian", "Investigator", "Chef", "Empath", "Fortune Teller", "Undertaker", "Monk",
+            "Washer Woman", "Librarian", "Investigator", "Chef", "Empath", "Fortune Teller", "Undertaker", "Monk",
             "Ravenkeeper", "Virgin", "Slayer", "Soldier", "Mayor", "Butler", "Drunk", "Recluse", "Saint",
             "Poisoner", "Spy", "Scarlet Woman", "Baron", "Imp"
         ],
         role_groups={
             "townsfolk": [
-                "Washerwoman", "Librarian", "Investigator", "Chef", "Empath",
+                "Washer Woman", "Librarian", "Investigator", "Chef", "Empath",
                 "Fortune Teller", "Undertaker", "Monk", "Ravenkeeper",
                 "Virgin", "Slayer", "Soldier", "Mayor",
             ],

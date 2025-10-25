@@ -22,6 +22,9 @@
             @if (seat.occupant) {
                 {{ seat.occupant.name }}
                 @if (isMySeat(seat)) {    <!-- And game is "open"-->
+                    @if (role) {
+                        {{role}}
+                    }
                     <span><button type="submit" (click)="vacate(seat.seat)">Vacate chair</button></span>
                 }
             } @else {
