@@ -1,13 +1,18 @@
 <h2>Room details</h2>
 
-{{ latest() | json}}
-
 <div *ngIf="latest(); else waiting">
 
     <button type="submit" (click)="leave()">Leave</button>
 
+    <pre>{{getRoom() | json}}</pre>
+
     @if (isStoryTeller()) {
-        <h4>You are the storyteller!!!!</h4>
+        <app-story-teller
+            [phase]="latest().view.phase"
+            [roomId]="getRoom().gid">
+        </app-story-teller>
+    } @else {
+        <app-player></app-player>
     }
 
     <pre>Room: {{ getRoom().name }}</pre>

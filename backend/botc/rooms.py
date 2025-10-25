@@ -167,7 +167,7 @@ class GameRoom:
     # broadcast helpers
     """
 
-    def _send_to_storyteller(self, msg: str):
+    def send_to_storyteller(self, msg: str):
         import json
         if not self.storytellerSocket:
             return
@@ -176,6 +176,8 @@ class GameRoom:
         else:
             self.storytellerSocket.write_message(json.dumps(msg))
 
+    #Should broadcast send to story_teller too?  Should broadcast have the message?
+    #Oh I am so confused...
     def broadcast(self):
         #Are we just broadchasting the room state?
         for pid, socks in list(self.player_sockets.items()):
@@ -194,7 +196,7 @@ class GameRoom:
         if self.storytellerSocket:
             try:
                 print("Sending")
-                self.storytellerSocket.send({"type": "state", "view": view_for_storyteller(None, self)})
+                self.storytellerSocket.send({"type": "state", "view": view_for_storyteller(self.game, self)})
                 print("Sent")
             except Exception as ex:
                 self.storytellerSocket = None
@@ -252,7 +254,7 @@ class GameRoom:
             self.spectators.append(spectator)
 
             msg = spectator_joined_message(self.info.gid, spectator_id, spectator_name)
-            self._send_to_storyteller(msg)
+            self.send_to_storyteller(msg)
             self.broadcast()
 
         return {"id": spectator_id, "name": spectator_name}
@@ -289,7 +291,7 @@ class GameRoom:
             self.players = [p for p in self.players if p.id != player_id]
 
         msg = player_left_message(self.info.gid, player.id, player.name, seat_no)
-        self._send_to_storyteller(msg)
+        self.send_to_storyteller(msg)
 
         self.broadcast()
         return True, None
@@ -325,7 +327,7 @@ class GameRoom:
         self.players.append(player)
 
         msg = player_taken_seat(self.info.gid, spectator.id, spectator.name, seat_no)
-        self._send_to_storyteller(msg)
+        self.send_to_storyteller(msg)
         self.broadcast()
 
         return True, None
@@ -364,7 +366,7 @@ class GameRoom:
             self.players = [p for p in self.players if p.id != pid]
 
         msg = player_vacated_seat(self.info.gid, player.id, player.name, seat_no)
-        self._send_to_storyteller(msg)
+        self.send_to_storyteller(msg)
         self.broadcast()
 
         return True, None

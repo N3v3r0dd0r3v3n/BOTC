@@ -156,22 +156,6 @@ class Game:
     def alive_players(self) -> List[Player]:
         return [p for p in self.players if p.alive]
 
-    """
-    def alive_others(self, pid: int) -> List[Player]:
-        return [p for p in self.alive_players() if p.id != pid]
-
-    def assign_role(self, pid: int, role: object):
-        p = self.player(pid)
-        p.role = role
-        setattr(role, "owner", pid)
-
-    def kill_at_dawn(self, pid: int):
-        if pid not in self.pending_dawn:
-            self.pending_dawn.append(pid)
-
-    def kill_now(self, pid: int):
-        self.mark_dead(pid, "immediately")
-
     def step(self):
         if self.phase == Phase.SETUP:
             self.phase = Phase.NIGHT
@@ -190,12 +174,58 @@ class Game:
             self.finish_day()
             self.phase = Phase.FINAL_CHECK
         elif self.phase == Phase.FINAL_CHECK:
-            ended = self.rules.check_end(self) if self.rules else False
+            #ended = self.rules.check_end(self) if self.rules else False
+            ended = False
             if not ended:
                 self.night += 1
                 self.phase = Phase.NIGHT
                 self.night_protected.clear()
         return self.phase
+
+    def start_day(self):
+        return
+        self.best_nomination = None
+        self.executed_today = None
+        # call on_day_start for roles
+        for p in self.players:
+            if p.role and hasattr(p.role, "on_day_start"):
+                p.role.on_day_start(self)
+
+    def finish_day(self):
+        return
+        # Execute highest on the block if any (ties = no execution).
+        if self.executed_today is not None:
+            return  # already executed via immediate effect or earlier
+        n = self.best_nomination
+        if not n:
+            self.log.append("No execution today")
+            return
+        # If best_nomination didn't meet majority, do nothing
+        if n.votes_for < self.majority_required():
+            self.log.append("No execution (no majority)")
+            return
+        # Check if it is uniquely highest (i.e., no tie).
+        # For our simple engine, best_nomination is only updated on strictly greater votes,
+        # so a tie will never overwrite; that means ties → no execution.
+        self.execute(n.target)
+
+    """
+    def alive_others(self, pid: int) -> List[Player]:
+        return [p for p in self.alive_players() if p.id != pid]
+
+    def assign_role(self, pid: int, role: object):
+        p = self.player(pid)
+        p.role = role
+        setattr(role, "owner", pid)
+
+    def kill_at_dawn(self, pid: int):
+        if pid not in self.pending_dawn:
+            self.pending_dawn.append(pid)
+
+    def kill_now(self, pid: int):
+        self.mark_dead(pid, "immediately")
+
+    
 
     # --- Voting helpers ---
     def majority_required(self) -> int:
@@ -319,30 +349,9 @@ class Game:
         self.assign_role(sw.id, Imp())
         self.log.append(f"{sw.name} becomes the Imp (Scarlet Woman)")
 
-    def start_day(self):
-        self.best_nomination = None
-        self.executed_today = None
-        # call on_day_start for roles
-        for p in self.players:
-            if p.role and hasattr(p.role, "on_day_start"):
-                p.role.on_day_start(self)
+   
 
-    def finish_day(self):
-        #Execute highest on the block if any (ties = no execution).
-        if self.executed_today is not None:
-            return  # already executed via immediate effect or earlier
-        n = self.best_nomination
-        if not n:
-            self.log.append("No execution today")
-            return
-        # If best_nomination didn't meet majority, do nothing
-        if n.votes_for < self.majority_required():
-            self.log.append("No execution (no majority)")
-            return
-        # Check if it is uniquely highest (i.e., no tie).
-        # For our simple engine, best_nomination is only updated on strictly greater votes,
-        # so a tie will never overwrite; that means ties → no execution.
-        self.execute(n.target)
+    
 
     def is_poisoned(self, pid: int) -> bool:
         # True if any living Poisoner set this pid last night (simple per-night poison)

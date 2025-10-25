@@ -7,11 +7,13 @@ import { SpectatorSocketService } from './spectator-socket.service';
 import { StoryTellerSocketService } from './storyteller-socket.service';
 import { RoomService } from './room.service';
 import { PlayerSocketService } from './player-socket.service';
+import { StoryTeller } from "../../components/story-teller/story-teller";
+import { Player } from "../../components/player/player";
 
 @Component({
   standalone: true,
   selector: 'app-room-view',
-  imports: [CommonModule],
+  imports: [CommonModule, StoryTeller, Player],
   templateUrl: './room-view.html',
   styleUrl: './room-view.css',
   providers: [

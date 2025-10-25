@@ -7,7 +7,7 @@ class StepHandler(BaseHandler):
         room = rooms.get(gid)
         if not room:
             self.set_status(404)
-            self.write({"error":"room_not_found"})
+            self.write({"error": "room_not_found"})
             return
         # Drive one engine step (useful while no UI exists)
         room.game.step()
