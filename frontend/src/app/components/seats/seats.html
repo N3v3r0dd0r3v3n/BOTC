@@ -1,1 +1,5 @@
-<p>seats works!</p>
+@for (seat of seats; track seat ?? $index) {
+    <div>
+        {{ seat['seat']}} <mat-icon>event_seat</mat-icon> {{ seat.occupant?.name}}
+    </div>
+} 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Optional, List, Dict, Callable, Any
+from typing import Optional, List, Dict, Callable, Any, Set
 
 from botc.prompt import AutoPrompt
 from botc.scripts import Script
@@ -81,6 +81,13 @@ class DomainEvent:
 
 
 @dataclass
+class NightOneInfo:
+    demon_id: Optional[int] = None
+    minion_ids: List[int] = field(default_factory=list)
+    demon_bluffs: List[str] = field(default_factory=list)  # role names, not in play
+
+
+@dataclass
 class Game:
     slots: List[str]
     players: List[Player]
@@ -101,15 +108,11 @@ class Game:
     night_protected: set[int] = field(default_factory=set)  # cleared at start of each night
     last_executed_pid: int | None = None
     _emit: Callable[[DomainEvent], None] = Noop
+    wake_list: List[Dict] = field(default_factory=list)
+    wake_index = -1
+    n1_info = NightOneInfo()
 
-    """
-    def attach_emitter(self, emit: Callable[[DomainEvent], None]) -> None:
-        self._emit = emit
-    """
-
-    def __post_init__(self):
-        print(sorted(ROLE_REGISTRY.keys()))
-
+    def _setup(self):
         deck = self._build_role_deck()
         for role, slot in zip(deck, self.slots):
             self.roles_by_slot[slot] = role
@@ -158,10 +161,17 @@ class Game:
 
     def step(self):
         if self.phase == Phase.SETUP:
-            print("Setting up game")
+            self._setup()
+            self._compute_night_one_info()
             self.phase = Phase.NIGHT
             self.night = 1
         elif self.phase == Phase.NIGHT:
+            wake_list = self.build_wake_list()
+            #room.send_to_storyteller(wake_list)
+            #self._emit(PhaseChanged(self.phase, self.night))
+            #self._emit(NightPrepared(self.night, wake))
+            self._emit(DomainEvent("NightPrepared", {"night": self.night, "wake_list": wake_list}))
+
             for pid in self.pending_dawn:
                 self.mark_dead(pid, "at dawn")
             self.pending_dawn.clear()
@@ -209,6 +219,68 @@ class Game:
         # For our simple engine, best_nomination is only updated on strictly greater votes,
         # so a tie will never overwrite; that means ties → no execution.
         self.execute(n.target)
+
+    def build_wake_list(self) -> List[Dict]:
+        self.wake_list = []
+        self.wake_index = -1
+
+        # map role name -> player
+        alive_by_role: Dict[str, int] = {}
+        for p in self.players:
+            if not p.alive:
+                continue
+            r = getattr(p, "role", None)
+            if not r:
+                continue
+            # r.name should match the strings in the Script
+            alive_by_role[r.id] = p.id
+
+        order = self.script.night_order(self.night)
+
+        for role_name in order:
+            pid = alive_by_role.get(role_name)
+            if pid is None:
+                continue  # role not in play or dead
+            pl = self.player(pid)  # assume you have g.player(id)
+            self.wake_list.append({
+                "role": role_name,
+                "owner": pid,
+                "name": pl.name
+            })
+
+        return self.wake_list
+
+    def _compute_night_one_info(self):
+        """Call this once after setup, before Night 1 starts."""
+        # Identify demon and minions in play
+        demon = None
+        minions = []
+        in_play_role_names: Set[str] = set()
+
+        for p in self.players:
+            if not getattr(p, "role", None):
+                continue
+            in_play_role_names.add(p.role.id)
+            rtype = getattr(p.role, "type", None)
+            if rtype == RoleType.DEMON:
+                demon = p
+            elif rtype == RoleType.MINION:
+                minions.append(p)
+
+        demon_id = demon.id if demon else None
+        minion_ids = [m.id for m in minions]
+
+        # Choose 3 bluff roles from townsfolk not in play
+        townsfolk_all = set(self.script.role_groups.get("townsfolk", []))
+        available_bluffs = list(townsfolk_all - in_play_role_names)
+        random.shuffle(available_bluffs)
+        bluffs = available_bluffs[:3]
+
+        self.n1_info = NightOneInfo(
+            demon_id=demon_id,
+            minion_ids=minion_ids,
+            demon_bluffs=bluffs
+        )
 
     """
     def alive_others(self, pid: int) -> List[Player]:

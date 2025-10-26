@@ -18,22 +18,20 @@
     <br/>
     <mat-card appearance="outlined">
         <mat-card-content>
-            <app-seats></app-seats>
-        </mat-card-content>
-    </mat-card>
-    <br/>
-     @if (isStoryTeller()) {
-        <mat-card appearance="outlined">
-            <mat-card-content>
+            @if (isStoryTeller()) {
                 <app-story-teller
                     [phase]="latest().view.phase"
                     [roomId]="getRoom().gid"
-                    [playerCount]="latest().view.players">
+                    [playerCount]="latest().view.players"
+                    [seats]="this.getSeats()">
                 </app-story-teller>
-            </mat-card-content>
-        </mat-card>
-        <br/>
-     }
+            }
+            <app-seats
+                [seats]="this.getSeats()"
+                [isStoryteller]="this.isStoryTeller()"></app-seats>
+        </mat-card-content>
+    </mat-card>
+    <br/>
 
 }
 
@@ -77,25 +75,9 @@
             }  
         </div>
     </span>
-
-    @if (isStoryTeller()) {
-        @if (getSeats().length < 20) {
-            <button type="submit" (click)="addChair()">Add Chair</button>&nbsp;
-        }
-        @if (getSeats().length > 5) {
-            <button type="submit" (click)="removeChair()">Remove Chair</button>
-        }
-        <br/>
-        <button type="submit" (click)="setupGame()">Prepare bag</button>
-    }
-
-    <pre>{{ latest() | json }}</pre>
-
 </div>
 
 *** {{storytellerLogs}}
 <ng-template #waiting>
     <p>Waiting for data...</p>
 </ng-template>
-
-<button (click)="sendPing()">Send ping</button>

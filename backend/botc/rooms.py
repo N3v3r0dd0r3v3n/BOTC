@@ -4,14 +4,13 @@ from collections import defaultdict
 from typing import List, Set, Dict
 
 from botc.messages import spectator_joined_message, player_taken_seat, player_vacated_seat, player_left_message, \
-    role_assigned_info_message
+    role_assigned_info_message, night_prepared_message
 from botc.model import RoomInfo, Game, DomainEvent
 from botc.scripts import Script
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus
 from botc.model import Player
 from botc.model import Spectator
-
 
 
 class GameRoom:
@@ -101,12 +100,12 @@ class GameRoom:
             self.info.status = "started"
             self.game.step()
 
-
-
             # This is a bit hacky.  But we'll go for it whilst we are getting shit to work.
+            # Do I need to broadcast to players and specs?
             view = view_for_storyteller(self.game, room)
             self.send_to_storyteller(view)
             # End hack
+            # broadcast or send to players and specs?
             self.broadcast()
 
             """
@@ -308,8 +307,11 @@ class GameRoom:
         return True, None
 
     def sit(self, sid: int, seat_no: int) -> tuple[bool, str | None]:
-        if self.info.status != "open":
-            return False, "room_not_open"
+        #if self.info.status != "open":
+        #    return False, "room_not_open"
+
+        #If the game has started then we need to think about checking if the seat has a role assigned to it
+        #If so, adopt it.
 
         if not (1 <= seat_no <= len(self.seats)):
             return False, "invalid_seat"
@@ -425,6 +427,11 @@ class GameRoom:
 
         print(ev.data)
         print(self)  #Just to stop it complaining about being static
+
+        if ev.type == "NightPrepared":
+            msg = night_prepared_message(self.info.gid, ev.data)
+            self.send_to_storyteller(msg);
+        # "NightPrepared", {"night": self.night, "wake_list": wake_list}))
         """if ev.type == "NominationStarted":
             self._send_to_storyteller(event_envelope(self.gid, "NominationStarted", ev.data))
             self.broadcast()

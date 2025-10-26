@@ -5,11 +5,13 @@ from botc.model import Game
 
 EVENT = "event"
 INFO = "info"
+PATCH = "patch"
 SPECTATOR_JOINED = "SpectatorJoined"
 SPECTATOR_LEFT = "SpectatorLeft"
 PLAYER_TAKEN_SEAT = "PlayerTakenSeat"
 PLAYER_VACATED_SEAT = "PlayerVacatedSeat"
 PLAYER_LEFT = "PlayerLeft"
+PHASE_CHANGED = "PhaseChange"
 
 
 def _iso_now():
@@ -27,6 +29,12 @@ def construct_envelope(message_type, data, gid):
 
 def construct_event_message(kind, gid, data):
     envelope = construct_envelope(EVENT, data, gid)
+    envelope['kind'] = kind
+    return envelope
+
+
+def construct_patch_message(kind, gid, data):
+    envelope = construct_envelope(PATCH, data, gid)
     envelope['kind'] = kind
     return envelope
 
@@ -96,3 +104,11 @@ def player_left_message(gid: str, player_id: str, player_name: str):
             "player_id": player_id,
             "player_name": player_name
         })
+
+
+def night_prepared_message(gid: str, wake_list: str):
+    return construct_patch_message(
+        PHASE_CHANGED,
+        gid,
+        wake_list
+    )

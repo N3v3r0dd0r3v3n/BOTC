@@ -50,7 +50,7 @@ export class RoomViewComponent implements OnInit {
     private readonly router: Router,
     private readonly cd: ChangeDetectorRef,
   ) {
-
+    
     let initialised = false;
 
     effect(() => {
@@ -73,6 +73,7 @@ export class RoomViewComponent implements OnInit {
         console.log(msg);
         let message = null;
         if (msg.type == "event" && this.isST) {
+          console.log(this.storytellerSocket);
           let details = "";
           const spectator_name = msg.data.spectator_name;
           if (msg.kind == "SpectatorJoined") {
@@ -153,16 +154,6 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
 }
 */
 
-
-
-
-
-
-
-
-
-
-
   }
 
   async ngOnInit(): Promise<void> {
@@ -188,31 +179,6 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
 
     //Change-detection nudge in case the first push raced the binding
     this.cd.detectChanges();
-  }
-
-  setupGame(): void {
-    alert("Starting game")
-    const rid = this.getRoomId();
-    if (rid) {
-      const response = firstValueFrom(this.roomService.startGame(rid));
-      console.log(response);
-    }
-  }
-
-  sendPing(): void {
-    const payload = { type: 'ping', t: Date.now() };
-    if (this.isST) this.storytellerSocket.send(payload);
-    else this.spectatorSocket.send(payload);
-  }
-
-  async addChair() {
-    const seats = this.getSeats();
-    this.updateSeatCount(seats.length + 1);
-  }
-
-  removeChair() {
-    const seats = this.getSeats();
-    this.updateSeatCount(seats.length - 1);
   }
 
   async sit(seat: number) {
@@ -285,12 +251,6 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
 
   getSpectators() { 
     return this.latest()?.view?.spectators ?? []; 
-  }
-
-  private updateSeatCount(seatCount: number) {
-    const gid = this.getRoomId();
-    if (gid) return firstValueFrom(this.roomService.updateSeatCount(gid, seatCount));
-    return Promise.resolve();
   }
 
   private myId() {

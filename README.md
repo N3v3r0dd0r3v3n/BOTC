@@ -89,3 +89,28 @@ cid = correlation id so replies pair to requests.
   | { type: 'error'; cid?: string; error: string }
   | { type: 'pong'; t?: number };
 
+
+
+{
+  "type": "request",
+  "cid": 101,
+  "kind": "tell",
+  "payload": {
+    "text": "You learn who your minions are and three townsfolk bluffs.",
+    "minions": self.n1_info.minion_ids,
+    "bluffs": self.n1_info.demon_bluffs
+  }
+}
+
+# For a minion on Night 1
+{
+  "type": "request",
+  "cid": 102,
+  "kind": "tell",
+  "payload": {
+    "text": "You learn who the demon is and who the other minions are.",
+    "demon": self.n1_info.demon_id,
+    "minions": self.n1_info.minion_ids
+  }
+}
+

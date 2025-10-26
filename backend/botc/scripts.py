@@ -11,6 +11,9 @@ class Script:
     role_groups: dict
     role_counts: dict
 
+    def night_order(self, night: int) -> list[str]:
+        return self.first_night if night == 1 else self.other_nights
+
 
 # registry: role_id -> factory function (to avoid importing every class everywhere)
 ROLE_REGISTRY: Dict[str, Callable[[], object]] = {}

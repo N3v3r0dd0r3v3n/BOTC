@@ -1,12 +1,9 @@
-<div class="mat-typography">
-  <!-- all child text gets Material sizes/weights/letter-spacing -->
-  <h2>Story-teller view</h2>
-</div>
-
-<br/>
-
 @if (phase) {   
-    <button matButton="elevated" type="submit" (click)="step(roomId!)">Go to {{phase.toLowerCase()}}</button>
+    Phase: {{phase.toLowerCase()}}
+    <button matButton="elevated" type="submit" (click)="step(roomId!)">Next phase</button>
 } @else {
-    <button matButton="elevated" type="submit" (click)="this.setupGame()" [disabled]="this.hasMinimumPlayers()">Start Game</button>
+    <button matButton="elevated" type="submit" (click)="this.setupGame()" [disabled]="this.hasMinimumPlayers()">Start Game</button>&nbsp;
 }
+<button matButton="elevated" type="submit" (click)="addSeat()" [disabled]="this.hasMaximumSeats()">Add Seat</button>&nbsp;
+<button matButton="elevated" type="submit" (click)="removeSeat()" [disabled]="this.hasMinimumSeats()">Remove Seat</button>
+
