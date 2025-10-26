@@ -17,4 +17,21 @@ export class Seats {
   @Input() isStoryteller:boolean = false;
   seatClass=""
 
+  radius = 150;
+  
+  getSeatStyle(index: number, total: number) {
+    if (total === 0) return {};
+
+    const angle = (2 * Math.PI * index) / total;
+    const x = this.radius * Math.cos(angle);
+    const y = this.radius * Math.sin(angle);
+
+    return {
+      position: 'absolute',
+      left: `calc(50% + ${x}px)`,
+      top: `calc(50% + ${y}px)`,
+      transform: 'translate(-50%, -50%)',
+    };
+  }
+
 }

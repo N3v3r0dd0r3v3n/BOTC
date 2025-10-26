@@ -1,5 +1,12 @@
-@for (seat of seats; track seat ?? $index) {
-    <div>
-        {{ seat['seat']}} <mat-icon>event_seat</mat-icon> {{ seat.occupant?.name}}
-    </div>
-} 
+<br/>
+<br/>
+<br/>
+
+
+<div class="circle-container">
+    @for (seat of seats; track seat ?? $index) {
+        <div [ngStyle]="getSeatStyle($index, seats.length)">
+            <mat-icon>event_seat</mat-icon> {{ seat.occupant?.name}}
+        </div>
+    } 
+</div>
