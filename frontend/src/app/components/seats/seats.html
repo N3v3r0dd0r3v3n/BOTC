@@ -1,12 +1,24 @@
 <br/>
 <br/>
 <br/>
-
-
-<div class="circle-container">
-    @for (seat of seats; track seat ?? $index) {
-        <div [ngStyle]="getSeatStyle($index, seats.length)">
-            <mat-icon>event_seat</mat-icon> {{ seat.occupant?.name}}
-        </div>
-    } 
+<br/>
+<div
+  class="circle-container"
+  [style.--radius.px]="radius"        
+  [style.--label-gap.px]="labelGap"   
+  [style.--seat.px]="seatSize"        
+  [style.--label-pad.px]="labelPad"   
+>
+  @for (seat of seats; track seat ?? $index; let i = $index) {
+    <div class="node" [style.--i]="i" [style.--n]="seats.length">
+      <div class="anchor">
+        <div class="chair"><mat-icon>event_seat</mat-icon></div>
+        <div class="label">{{ seat.occupant?.name || 'Empty' }}</div>
+      </div>
+    </div>
+  }
 </div>
+<br/>
+<br/>
+<br/>
+<br/>

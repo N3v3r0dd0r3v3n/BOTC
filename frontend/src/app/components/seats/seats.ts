@@ -17,8 +17,13 @@ export class Seats {
   @Input() isStoryteller:boolean = false;
   seatClass=""
 
-  radius = 150;
-  
+radius   = 220;  // seat ring radius in px
+seatSize = 56;   // diameter of each chair
+labelGap = 12;    // distance from seat edge to label
+labelPad = 1;    // small margin to keep everything inside
+
+
+
   getSeatStyle(index: number, total: number) {
     if (total === 0) return {};
 
