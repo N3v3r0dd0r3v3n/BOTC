@@ -47,7 +47,7 @@ def view_for_player(g: Game, player_id: int, room) -> dict:
                 },
                 "status": room.info.status,  # open | started | finished
             }
-        return base
+    return base
 
 
 def view_for_seat(g: Game, seat: int) -> dict:

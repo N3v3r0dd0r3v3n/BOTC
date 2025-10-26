@@ -100,10 +100,6 @@ class GameRoom:
             self.info.status = "started"
             self.game.step()
 
-            # This is a bit hacky.  But we'll go for it whilst we are getting shit to work.
-            # Do I need to broadcast to players and specs?
-            view = view_for_storyteller(self.game, room)
-            self.send_to_storyteller(view)
             # End hack
             # broadcast or send to players and specs?
             self.broadcast()
@@ -186,8 +182,6 @@ class GameRoom:
         else:
             self.storytellerSocket.write_message(json.dumps(msg))
 
-    #Should broadcast send to story_teller too?  Should broadcast have the message?
-    #Oh I am so confused...
     def broadcast(self):
         #Broadcast game state
         for pid, socks in list(self.player_sockets.items()):
@@ -212,8 +206,6 @@ class GameRoom:
                 self.storytellerSocket = None
                 print("Something went wrong")
                 print(ex)
-
-
         # viewers
         if self.room_viewers:
             room_view = {"type": "state", "view": view_for_room(self)}
@@ -231,21 +223,17 @@ class GameRoom:
         self.bus.fulfill(cid, answer)
         self.broadcast()
 
-    # ----- capacity & seating -----
-    def seats_used(self) -> int:
-        return sum(1 for p in self.game.players if p.seat is not None)
-
     def player_by_id(self, pid: int):
         return next((p for p in self.players if p.id == pid), None)
+
+    def is_spectator(self, sid: int) -> bool:
+        return self.spectator_by_id(sid) is not None
 
     def spectator_by_id(self, sid: int):
         return next((s for s in self.spectators if s.id == sid), None)
 
     def is_storyteller(self, stid: int) -> bool:
         return stid == self.info.storyteller_id
-
-    def is_spectator(self, sid: int) -> bool:
-        return self.spectator_by_id(sid) is not None
 
     def is_player(self, pid: int) -> bool:
         if self.game and self.game.players:
@@ -254,17 +242,13 @@ class GameRoom:
             return False
 
     def join_unseated(self, spectator_id, spectator_name: str) -> dict | None:
-        if self.info.status != "open":
-            return None
 
         if not self.is_storyteller(stid=spectator_id) \
                 and not self.is_spectator(sid=spectator_id) \
                 and not self.is_player(pid=spectator_id):
             spectator = Spectator(id=spectator_id, name=spectator_name)
             self.spectators.append(spectator)
-
-            msg = spectator_joined_message(self.info.gid, spectator_id, spectator_name)
-            self.send_to_storyteller(msg)
+            self.send_to_storyteller(spectator_joined_message(self.info.gid, spectator_id, spectator_name))
             self.broadcast()
 
         return {"id": spectator_id, "name": spectator_name}
@@ -300,8 +284,7 @@ class GameRoom:
         if hasattr(self, "players"):
             self.players = [p for p in self.players if p.id != player_id]
 
-        msg = player_left_message(self.info.gid, player.id, player.name, seat_no)
-        self.send_to_storyteller(msg)
+        self.send_to_storyteller(player_left_message(self.info.gid, player.id, player.name, seat_no))
 
         self.broadcast()
         return True, None
@@ -339,8 +322,7 @@ class GameRoom:
             self.players = []
         self.players.append(player)
 
-        msg = player_taken_seat(self.info.gid, spectator.id, spectator.name, seat_no)
-        self.send_to_storyteller(msg)
+        self.send_to_storyteller(player_taken_seat(self.info.gid, spectator.id, spectator.name, seat_no))
         self.broadcast()
 
         return True, None
@@ -384,50 +366,7 @@ class GameRoom:
 
         return True, None
 
-    def seated_count(self) -> int:
-        return sum(1 for p in self.game.players if getattr(p, "seat", None) is not None)
-
-    def unseated_count(self) -> int:
-        return sum(1 for p in self.game.players if getattr(p, "seat", None) is None)
-
-    def counts(self) -> dict:
-        return {
-            "seated": "self.seated_count()",
-            "unseated": "self.unseated_count()",
-            "total": "len(self.game.players)",
-        }
-
-    def as_dict(self) -> dict:
-        """Return a JSON-safe representation of this room."""
-        return {
-            "gid": self.gid,
-            "name": self.info.name,
-            "script_name": self.info.script_name,
-            "status": self.info.status,
-            "spectators": [
-                {"id": s.id, "name": s.name} for s in self.spectators
-            ],
-            "seats": [
-                {
-                    "seat": s["seat"],
-                    "occupant": (
-                        None if s["occupant"] is None
-                        else {
-                            "id": s["occupant"].id,
-                            "name": s["occupant"].name,
-                            "seat": s["occupant"].seat,
-                        }
-                    ),
-                }
-                for s in self.seats
-            ],
-        }
-
     def _on_event(self, ev: DomainEvent):
-
-        print(ev.data)
-        print(self)  #Just to stop it complaining about being static
-
         if ev.type == "NightPrepared":
             msg = night_prepared_message(self.info.gid, ev.data)
             self.send_to_storyteller(msg);
@@ -452,6 +391,34 @@ class GameRoom:
 
         elif ev.type == "NominationOpenForVoting":
             self._broadcast_all(event_envelope(self.gid, "NominationOpenForVoting", ev.data))"""
+
+    """
+        def as_dict(self) -> dict:
+        #Return a JSON-safe representation of this room.
+        return {
+            "gid": self.gid,
+            "name": self.info.name,
+            "script_name": self.info.script_name,
+            "status": self.info.status,
+            "spectators": [
+                {"id": s.id, "name": s.name} for s in self.spectators
+            ],
+            "seats": [
+                {
+                    "seat": s["seat"],
+                    "occupant": (
+                        None if s["occupant"] is None
+                        else {
+                            "id": s["occupant"].id,
+                            "name": s["occupant"].name,
+                            "seat": s["occupant"].seat,
+                        }
+                    ),
+                }
+                for s in self.seats
+            ],
+        }
+    """
 
 
 rooms: Dict[str, GameRoom] = {}
