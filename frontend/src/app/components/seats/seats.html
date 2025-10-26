@@ -2,6 +2,7 @@
 <br/>
 <br/>
 <br/>
+<br/>
 <div
   class="circle-container"
   [style.--radius.px]="radius"        
@@ -9,11 +10,19 @@
   [style.--seat.px]="seatSize"        
   [style.--label-pad.px]="labelPad"   
 >
+
   @for (seat of seats; track seat ?? $index; let i = $index) {
     <div class="node" [style.--i]="i" [style.--n]="seats.length">
       <div class="anchor">
         <div class="chair"><mat-icon>event_seat</mat-icon></div>
         <div class="label">{{ seat.occupant?.name || 'Empty' }}</div>
+        @if (seat.occupant?.role) {
+        <div class="role-circle" class="role-circle"
+            [ngStyle]="{ 'font-size': getRoleFontSize('Washer woman') }">
+            {{seat.occupant!.role.id}}
+        </div>
+        }
+  
       </div>
     </div>
   }

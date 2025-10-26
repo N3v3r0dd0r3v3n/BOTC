@@ -3,121 +3,85 @@ from dataclasses import asdict
 from botc.model import Game
 
 
+def _build_seats(room, include_roles: bool = False, only_role_id=None):
+    """
+    - include_roles=True  -> include every occupant's role (storyteller)
+    - only_role_id=<pid>  -> include role only for that player (player self)
+    """
+    seats_view = []
+    for s in room.seats:  # each s is {"seat": int, "occupant": Player|None}
+        occ = s["occupant"]
+        if occ is None:
+            seats_view.append({"seat": s["seat"], "occupant": None})
+            continue
+
+        occ_payload = {"id": occ.id, "name": occ.name, "seat": occ.seat}
+
+        if include_roles or (only_role_id is not None and occ.id == only_role_id):
+            role_obj = getattr(occ, "role", None)
+            occ_payload["role"] = None if role_obj is None else {
+                "id": getattr(role_obj, "id", None),
+                "name": getattr(role_obj, "name", None),
+            }
+
+        seats_view.append({"seat": s["seat"], "occupant": occ_payload})
+    return seats_view
+
+
 def view_for_room(room):
-    seats_view = [
-        {
-            "seat": s["seat"],
-            "occupant": (
-                None if s["occupant"] is None
-                else {
-                    "id": s["occupant"].id,
-                    "name": s["occupant"].name,
-                    "seat": s["occupant"].seat,
-                }
-            ),
-        }
-        for s in room.seats
-    ]
     return {
         "info": asdict(room.info),
-        "seats": seats_view,
+        "seats": _build_seats(room, include_roles=False),
         "spectators": [{"id": s.id, "name": s.name} for s in room.spectators],
-        "players": len(room.players)
+        "players": len(room.players),
     }
 
 
 def view_for_player(g: Game, player_id: int, room) -> dict:
-    """Pre-game + in-game view for a player (id-based), including seat map."""
-    base = view_for_room(room)
-    base['random'] = "Hello player"
+    # start from scratch so we can override seats
+    base = {
+        "info": asdict(room.info),
+        "spectators": [{"id": s.id, "name": s.name} for s in room.spectators],
+        "players": len(room.players),
+        "random": "Hello player",
+    }
 
     if g:
         you = next((p for p in g.players if p.id == player_id), None)
+
+        # Only reveal your own seat role once the game is not open
+        only_id = you.id if (you and room.info.status != "open") else None
+        base["seats"] = _build_seats(room, include_roles=False, only_role_id=only_id)
+
         if you:
-            base['player'] = {
+            base["player"] = {
                 "phase": g.phase.name,
                 "night": g.night,
-                "you": None if not you else {
+                "you": {
                     "id": you.id,
                     "name": you.name,
                     "seat": you.seat,
                     "alive": you.alive,
                     "ghost": you.ghost_vote_available,
-                    "role": {"id": getattr(you.role, "id", None)} if (you.role and room.info.status != "open") else None
+                    "role": {"id": getattr(you.role, "id", None)} if (you.role and room.info.status != "open") else None,
                 },
-                "status": room.info.status,  # open | started | finished
+                "status": room.info.status,
             }
+    else:
+        base["seats"] = _build_seats(room, include_roles=False)
+
     return base
 
 
-def view_for_seat(g: Game, seat: int) -> dict:
-    """Redacted view for a specific seat (used for player sockets)."""
-    you = next((p for p in g.players if p.seat == seat), None)
-    return {
-        "phase": g.phase.name,
-        "night": g.night,
-        "you": None if not you else {
-            "id": you.id,
-            "seat": you.seat,
-            "name": you.name,
-            "alive": you.alive,
-            # players should see their own role; others' roles are hidden
-            "role": {"id": getattr(you.role, "id", None)} if you.role else None,
-            "ghost": you.ghost_vote_available,
-        },
-        "players": [
-            {
-                "id": p.id,
-                "seat": p.seat,
-                "name": p.name,
-                "alive": p.alive,
-                "ghost": p.ghost_vote_available,
-                # hide other roles from players
-            }
-            for p in g.players
-        ],
-        "public": {
-            "nomination": (
-                {
-                    "nominator": g.current_nomination.nominator,
-                    "target": g.current_nomination.target,
-                    "votes_for": g.current_nomination.votes_for,
-                    "needed": g.majority_required(),
-                }
-                if g.current_nomination
-                else None
-            )
-        },
-    }
-
-
 def view_for_storyteller(game: Game, room=None) -> dict:
-    """
     base = {
-        "phase": g.phase.name,
-        "night": g.night,
-        "players": [
-            {"id": p.id, "seat": p.seat, "name": p.name, "alive": p.alive,
-             "ghost": p.ghost_vote_available, "role": getattr(p.role, "id", None)}
-            for p in g.players
-        ],
-        "nomination": (
-            {"nominator": g.current_nomination.nominator,
-             "target": g.current_nomination.target,
-             "votes_for": g.current_nomination.votes_for,
-             "needed": g.majority_required(),
-             "votes": dict(g.current_nomination.votes)}
-            if g.current_nomination else None
-        ),
-        "log_len": len(g.log),
+        "info": asdict(room.info),
+        "seats": _build_seats(room, include_roles=True),
+        "spectators": [{"id": s.id, "name": s.name} for s in room.spectators],
+        "players": len(room.players),
+        "random": "Hello storyteller",
     }
-    if room:
-        base["seats"] = room.seat_map()
-        base["status"] = room.info.status
-    """
-    base = view_for_room(room)
     if game:
-        base['phase'] = game.phase.name
-        base['night'] = game.night
-    base['random'] = "Hello storyteller"
+        base["phase"] = game.phase.name
+        base["night"] = game.night
     return base

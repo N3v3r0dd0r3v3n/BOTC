@@ -86,10 +86,10 @@ export class RoomViewComponent implements OnInit {
           message = `${spectator_name} ${details}`
         }
 
-        if (msg.type == "info") {
+        /*if (msg.type == "info") {
           //message = `You are the ${msg.data.role_name}`
           this.role = msg.data.role_name;
-        }
+        }*/
         if (message) {
           alert(message)
         }

@@ -1,7 +1,11 @@
 export interface Player {
   id?: number;
   name?: string;
-  // add more as needed
+  role: Role;
+}
+
+export interface Role {
+  id: String;   //It's actually the name!
 }
 
 export interface Room {

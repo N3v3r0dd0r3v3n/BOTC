@@ -17,10 +17,10 @@ export class Seats {
   @Input() isStoryteller:boolean = false;
   seatClass=""
 
-radius   = 220;  // seat ring radius in px
-seatSize = 56;   // diameter of each chair
-labelGap = 12;    // distance from seat edge to label
-labelPad = 1;    // small margin to keep everything inside
+  radius   = 0   // * this.seats.length;  // seat ring radius in px
+  seatSize = 80;   // diameter of each chair
+  labelGap = 12;    // distance from seat edge to label
+  labelPad = 1;    // small margin to keep everything inside
 
 
 
@@ -37,6 +37,20 @@ labelPad = 1;    // small margin to keep everything inside
       top: `calc(50% + ${y}px)`,
       transform: 'translate(-50%, -50%)',
     };
+  }
+
+  getRoleFontSize(role: string | undefined): string {
+    if (!role) return '12px';
+    const len = role.length;
+    if (len <= 3) return '13px';
+    if (len <= 6) return '11px';
+    if (len <= 10) return '9px';
+    return '8px';
+  }
+
+  ngOnChanges() {
+    console.log("Changed")
+    this.radius = 150 + (this.seats.length * 7.5)
   }
 
 }

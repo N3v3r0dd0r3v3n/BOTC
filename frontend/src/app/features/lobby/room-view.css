@@ -3,3 +3,5 @@ h2 small {
   font-weight: normal;
   opacity: 0.8;
 }
+
+.mat-mdc-card, .mat-mdc-card-content { overflow: visible; }
