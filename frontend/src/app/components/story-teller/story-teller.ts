@@ -23,14 +23,14 @@ export class StoryTeller implements OnInit {
   constructor(
     private gameService: GameService,
     private roomService: RoomService,
-    private readonly storytellerSocket: StoryTellerSocketService,
+    //private readonly storytellerSocket: StoryTellerSocketService,
     private readonly cd: ChangeDetectorRef
   ){}
   
   async ngOnInit(): Promise<void> {
-    this.latest = this.storytellerSocket.latest; 
+    //this.latest = this.storytellerSocket.latest; 
     this.cd.detectChanges();
-    await this.storytellerSocket.connect(this.roomId!);        
+    //await this.storytellerSocket.connect(this.roomId!);        
   }
 
   async step(roomId: string) {

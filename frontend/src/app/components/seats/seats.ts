@@ -1,20 +1,28 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { Seat } from '../../models/room.model';
+import { MatMenuModule } from '@angular/material/menu';
 
 @Component({
   selector: 'app-seats',
   imports: [
     CommonModule,
-    MatIconModule
+    MatIconModule,
+    MatMenuModule
   ],
   templateUrl: './seats.html',
   styleUrl: './seats.scss'
 })
 export class Seats {
+isMenuDisabled(_t8: Seat) {
+throw new Error('Method not implemented.');
+}
+
   @Input() seats:Seat[] = [];
   @Input() isStoryteller:boolean = false;
+  @Output() takeSeat = new EventEmitter<number>();
+
   seatClass=""
 
   radius   = 0   // * this.seats.length;  // seat ring radius in px
@@ -23,6 +31,7 @@ export class Seats {
   labelPad = 1;    // small margin to keep everything inside
 
 
+  menu: any;
 
   getSeatStyle(index: number, total: number) {
     if (total === 0) return {};
@@ -51,6 +60,15 @@ export class Seats {
   ngOnChanges() {
     console.log("Changed")
     this.radius = 150 + (this.seats.length * 7.5)
+  }
+
+  sit(seat: Seat) {
+    if (this.isStoryteller) {
+      return;
+    }
+    if (!seat.occupant) {
+      this.takeSeat.emit(seat.seat)
+    }
   }
 
 }

@@ -71,6 +71,9 @@ export class RoomViewComponent implements OnInit {
       
       if (msg != null) {
         console.log(msg);
+        console.log(this.isST)
+        console.log(msg.type)
+        console.log(msg.kind)
         let message = null;
         if (msg.type == "event" && this.isST) {
           console.log(this.storytellerSocket);
@@ -84,6 +87,12 @@ export class RoomViewComponent implements OnInit {
             details = `has vacated seat ${msg.data.seat} and is now spectating`;
           }
           message = `${spectator_name} ${details}`
+        } else if (msg.type == "patch" && this.isST) {
+          alert("Ok we have a patch!")
+          if (msg.kind == "PhaseChange") {
+            alert("Oooo it's night.  Get the wake list up!")
+          }
+
         }
 
         /*if (msg.type == "info") {

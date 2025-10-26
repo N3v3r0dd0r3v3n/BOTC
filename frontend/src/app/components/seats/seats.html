@@ -2,6 +2,8 @@
 <br/>
 <br/>
 <br/>
+{{seats.length}}
+<pre>{{seats | json}}</pre>
 <br/>
 <div
   class="circle-container"
@@ -13,8 +15,8 @@
 
   @for (seat of seats; track seat ?? $index; let i = $index) {
     <div class="node" [style.--i]="i" [style.--n]="seats.length">
-      <div class="anchor">
-        <div class="chair"><mat-icon>event_seat</mat-icon></div>
+      <div class="anchor"  (click)="sit(seat)">
+        <div class="chair"><button [matMenuTriggerFor]="menu" [disabled]="isMenuDisabled(seat)"><mat-icon style="margin: 12px">event_seat</mat-icon></button></div>
         <div class="label">{{ seat.occupant?.name || 'Empty' }}</div>
         @if (seat.occupant?.role) {
         <div class="role-circle" class="role-circle"
@@ -22,7 +24,7 @@
             {{seat.occupant!.role.id}}
         </div>
         }
-  
+
       </div>
     </div>
   }
@@ -31,3 +33,6 @@
 <br/>
 <br/>
 <br/>
+<mat-menu #menu="matMenu">
+  <button mat-menu-item>Vacate</button>
+</mat-menu>

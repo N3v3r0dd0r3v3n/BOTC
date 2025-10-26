@@ -23,12 +23,14 @@
                     [phase]="latest().view.phase"
                     [roomId]="getRoom().gid"
                     [playerCount]="latest().view.players"
-                    [seats]="this.getSeats()">
+                    [seats]="this.getSeats()"
+                >
                 </app-story-teller>
             }
             <app-seats
                 [seats]="this.getSeats()"
-                [isStoryteller]="this.isStoryTeller()"></app-seats>
+                [isStoryteller]="this.isStoryTeller()"
+                (takeSeat)="sit($event)"></app-seats>
         </mat-card-content>
     </mat-card>
     <br/>

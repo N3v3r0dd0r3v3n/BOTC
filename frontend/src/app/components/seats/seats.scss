@@ -97,3 +97,9 @@
 
 /* if your mat-card is clipping, keep overflow visible */
 .mat-mdc-card, .mat-mdc-card-content { overflow: visible; }
+
+button {
+    background-color: #222;
+    color: white;
+    border: 0;
+}
