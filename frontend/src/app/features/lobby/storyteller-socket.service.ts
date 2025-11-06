@@ -3,7 +3,7 @@ import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { Subscription } from 'rxjs';
 import { environment } from '../../environments/environment';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class StoryTellerSocketService {
   //public readonly lastMessage: Signal<any | null> = signal<any | null>(null);
 
@@ -49,11 +49,10 @@ export class StoryTellerSocketService {
 
     this.sub = this.socket.subscribe({
       next: msg => this.zone.run(() => {
-        console.log(msg)
-        //(this.latest as any).set?.(msg);
         if (msg.type === "state") {
           this._latest.set(msg);
-        } else if (msg.type === "event") {
+        } else if (msg.type === "event" || msg.type === "patch") {
+          alert("Feed imperative ffs")
           this._imperative.set(msg);
         }
       }),

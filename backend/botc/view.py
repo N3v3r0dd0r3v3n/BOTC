@@ -20,8 +20,7 @@ def _build_seats(room, include_roles: bool = False, only_role_id=None):
         if include_roles or (only_role_id is not None and occ.id == only_role_id):
             role_obj = getattr(occ, "role", None)
             occ_payload["role"] = None if role_obj is None else {
-                "id": getattr(role_obj, "id", None),
-                "name": getattr(role_obj, "name", None),
+                "id": getattr(role_obj, "id", None)
             }
 
         seats_view.append({"seat": s["seat"], "occupant": occ_payload})

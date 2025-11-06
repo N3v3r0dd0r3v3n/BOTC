@@ -4,7 +4,7 @@ import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { Subscription } from 'rxjs';
 import { environment } from '../../environments/environment';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class PlayerSocketService {
   private readonly _latest: WritableSignal<any | null> = signal<any | null>(null);
   public readonly latest = this._latest.asReadonly();

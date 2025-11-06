@@ -13,52 +13,54 @@ import { Spectators } from "../../components/spectators/spectators";
 import { MatCard, MatCardModule } from "@angular/material/card";
 import { MatButtonModule } from '@angular/material/button';
 import { Seats } from "../../components/seats/seats";
+import { RoomStateStore } from '../../components/services/socket-state-service';
 
 @Component({
   standalone: true,
   selector: 'app-room-view',
   imports: [
-    CommonModule, StoryTeller, Player, Spectators, MatCard, MatCardModule, MatButtonModule,
-    Seats
+    CommonModule, StoryTeller, Spectators, MatCard, MatCardModule, MatButtonModule,
+    Seats,
+    Player
 ],
   templateUrl: './room-view.html',
   styleUrl: './room-view.css',
   providers: [
-    SpectatorSocketService, 
-    StoryTellerSocketService,
-    PlayerSocketService]
+    //StoryTellerSocketService,
+    //PlayerSocketService,
+    //RoomStateStore
+  ]  //TODO Get rid of the other socketServices at some point right.
 })
 export class RoomViewComponent implements OnInit {
-  // PUBLIC so the template can call latest()
   public latest: Signal<any | null> = signal<any | null>(null);
-  public message = signal<Signal<any | null> | null>(null);
+  //public message = signal<Signal<any | null> | null>(null);
 
   public storytellerLogs:string[] = [];
 
   public isSeated = false;
   public role = null;
   private isST = false;
+  ready = false;
 
 
 
   constructor(
-    private readonly spectatorSocket: SpectatorSocketService,
-    private readonly playerSocket: PlayerSocketService,
-    private readonly storytellerSocket: StoryTellerSocketService,
     private readonly roomService: RoomService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly cd: ChangeDetectorRef,
+    private readonly store: RoomStateStore
   ) {
     
     let initialised = false;
 
     effect(() => {
+      //alert("Affected!!!")
       let msg = null;
       if (this.isST) {
-        msg = this.storytellerSocket.imperative();
+        //msg = this.storytellerSocket.imperative();
       } else {
-        msg = this.playerSocket.imperative();
+        //msg = this.playerSocket.imperative();
       }
 
       if (!initialised) {                   // skip the first run
@@ -72,11 +74,12 @@ export class RoomViewComponent implements OnInit {
       if (msg != null) {
         console.log(msg);
         console.log(this.isST)
-        console.log(msg.type)
-        console.log(msg.kind)
+       // console.log(msg.type)
+       //console.log(msg.kind)
         let message = null;
+        /*
         if (msg.type == "event" && this.isST) {
-          console.log(this.storytellerSocket);
+          //console.log(this.storytellerSocket);
           let details = "";
           const spectator_name = msg.data.spectator_name;
           if (msg.kind == "SpectatorJoined") {
@@ -94,6 +97,7 @@ export class RoomViewComponent implements OnInit {
           }
 
         }
+          */
 
         /*if (msg.type == "info") {
           //message = `You are the ${msg.data.role_name}`
@@ -163,6 +167,8 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
 }
 */
 
+
+
   }
 
   async ngOnInit(): Promise<void> {
@@ -170,23 +176,23 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
     if (!gid) return;
 
     
-    const meta = await firstValueFrom(this.roomService.getRoomDetails(gid));
-    this.isST = meta?.storyteller_id === this.myId();
+    const roomDetails = await firstValueFrom(this.roomService.getRoomDetails(gid));
+    this.isST = roomDetails?.storyteller_id === this.myId();
 
-    this.latest = this.isST ? this.storytellerSocket.latest : this.spectatorSocket.latest; 
-
-    // Make sure the template notices the new signal reference immediately
-    this.cd.detectChanges();
 
     if (this.isST) {
-      await this.storytellerSocket.connect(gid);        
+      await this.store.connectAsStoryteller(gid);
     } else {
-      await this.spectatorSocket.connect(gid); 
+      await this.store.connectAsPlayer(gid, this.myId());
     }
+    console.log('[room-view] connected; isST=', this.isST);
+
+    this.latest = this.store.latest;
 
     await firstValueFrom(this.roomService.joinRoom(gid));
 
     //Change-detection nudge in case the first push raced the binding
+    this.ready = true
     this.cd.detectChanges();
   }
 
@@ -198,16 +204,6 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
     const roomId = this.getRoomId();
 
     await firstValueFrom(this.roomService.sit(roomId, seat));
-
-    // close viewer socket before connecting as player
-    this.spectatorSocket.close();
-
-    if (this.myId != null) {
-      await this.playerSocket.connect(roomId, this.myId());
-      this.latest = this.playerSocket.latest;
-      this.cd.detectChanges();
-    }
-
     return Promise.resolve();
   }
 
@@ -219,16 +215,6 @@ private async onDisconnect(kind: 'st'|'spectator'|'player', reason: string) {
     const roomId = this.getRoomId();
     
     await firstValueFrom(this.roomService.vacate(roomId, seat));
-
-    // close player socket before switching back
-    
-    this.playerSocket.close();
-
-    if (this.myId != null) {
-      await this.spectatorSocket.connect(roomId);  // reopen viewer
-      this.latest = this.spectatorSocket.latest;
-      this.cd.detectChanges();
-    }
     return Promise.resolve();
   }
 

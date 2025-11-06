@@ -15,9 +15,6 @@ import { MatMenuModule } from '@angular/material/menu';
   styleUrl: './seats.scss'
 })
 export class Seats {
-isMenuDisabled(_t8: Seat) {
-throw new Error('Method not implemented.');
-}
 
   @Input() seats:Seat[] = [];
   @Input() isStoryteller:boolean = false;

@@ -19,14 +19,16 @@ class PlayerSocket(tornado.websocket.WebSocketHandler):
         room = self.rooms.get(gid)
         if not room:
             self.write_message(json.dumps({"type": "error", "error": "room_not_found"}))
-            self.close(); return
+            self.close()
+            return
 
         self.room = room
         self.player_id = pid
 
-        if not room.player_by_id(self.player_id):
-            self.write_message(json.dumps({"type": "error", "error": "player_not_found"}))
-            self.close(); return
+        #What the hell does this check actually do?
+        #if not room.player_by_id(self.player_id):
+        #    self.write_message(json.dumps({"type": "error", "error": "player_not_found"}))
+        #    self.close(); return
 
         # track this socket
         room.player_sockets[self.player_id].add(self)

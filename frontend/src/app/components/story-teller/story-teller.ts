@@ -1,10 +1,10 @@
-import { ChangeDetectorRef, Component, Input, OnInit, Signal, signal} from '@angular/core';
+import { ChangeDetectorRef, Component, effect, Input, OnInit, Signal, signal} from '@angular/core';
 import { GameService } from '../../features/lobby/game.service';
 import { firstValueFrom } from 'rxjs';
 import { RoomService } from '../../features/lobby/room.service';
 import { MatButtonModule } from '@angular/material/button';
 import { Seat } from '../../models/room.model';
-import { StoryTellerSocketService } from '../../features/lobby/storyteller-socket.service';
+import { RoomStateStore } from '../services/socket-state-service';
 
 @Component({
   selector: 'app-story-teller',
@@ -12,27 +12,25 @@ import { StoryTellerSocketService } from '../../features/lobby/storyteller-socke
   templateUrl: './story-teller.html',
   styleUrl: './story-teller.scss'
 })
-export class StoryTeller implements OnInit {
+export class StoryTeller  {
   @Input() roomId?: string;
   @Input() phase?: string;
   @Input() playerCount: number = 0;
   @Input() seats:Seat[] = [];
 
-  public latest: Signal<any | null> = signal<any | null>(null);
-
   constructor(
     private gameService: GameService,
     private roomService: RoomService,
-    //private readonly storytellerSocket: StoryTellerSocketService,
-    private readonly cd: ChangeDetectorRef
-  ){}
-  
-  async ngOnInit(): Promise<void> {
-    //this.latest = this.storytellerSocket.latest; 
-    this.cd.detectChanges();
-    //await this.storytellerSocket.connect(this.roomId!);        
+    private socketStateStore: RoomStateStore
+  ){
+    console.log('[StoryTeller] ngOnInit');
+    effect(() => {
+      alert("I'm effected")
+      const message = this.socketStateStore.imperative();
+      console.log('[StoryTeller] imperative seen:', message);
+     });  
   }
-
+  
   async step(roomId: string) {
     await firstValueFrom(this.gameService.step(roomId));
   }

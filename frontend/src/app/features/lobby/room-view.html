@@ -1,3 +1,5 @@
+<ng-container *ngIf="ready">
+
 
 {{getVisitor().name}}
 
@@ -26,6 +28,9 @@
                     [seats]="this.getSeats()"
                 >
                 </app-story-teller>
+            }
+            @if (!isStoryTeller()) {
+                <app-player></app-player>
             }
             <app-seats
                 [seats]="this.getSeats()"
@@ -83,3 +88,5 @@
 <ng-template #waiting>
     <p>Waiting for data...</p>
 </ng-template>
+
+</ng-container>
