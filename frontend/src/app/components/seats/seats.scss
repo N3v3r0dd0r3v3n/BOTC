@@ -1,12 +1,12 @@
-/* Tweak these if you like */
+/* === CIRCLE LAYOUT CONFIG === */
 .circle-container {
-  --radius: 200px;     /* seat ring radius */
-  --seat: 70px;        /* chair diameter */
-  --label-gap: 5px;    /* gap from seat edge to label (outside) */
+  --radius: 200px;      /* seat ring radius */
+  --seat: 70px;         /* chair diameter */
+  --label-gap: 5px;     /* gap from seat edge to label (outside) */
   --role-gap: 60px;     /* gap from seat edge to role chip (inside) */
-  --label-pad: 8px;    /* safety margin so labels fit in the card */
+  --label-pad: 8px;     /* safety margin so labels fit */
+  --info-gap: -45px;     /* distance inside the role ring */
 
-  /* size container to include seats + labels */
   --outer: calc(2 * (var(--radius) + var(--seat)/2 + var(--label-gap) + var(--label-pad)));
   position: relative;
   width: var(--outer);
@@ -15,10 +15,10 @@
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   isolation: isolate;
-  overflow: visible; /* prevent clipping */
+  overflow: visible;
 }
 
-/* one node per seat: set the angle and push to the seat ring */
+/* === SEAT POSITIONING === */
 .node {
   position: absolute;
   left: 50%;
@@ -30,14 +30,13 @@
     translate(var(--radius));
 }
 
-/* anchor at that point */
 .anchor {
   position: relative;
   width: 0;
   height: 0;
 }
 
-/* seat centred at the anchor, kept upright */
+/* === CHAIR === */
 .chair {
   position: absolute;
   left: 50%;
@@ -45,15 +44,24 @@
   width: var(--seat);
   height: var(--seat);
   border-radius: 50%;
-  display: grid; place-items: center;
-  background: #222; color: #fff; border: 2px solid #555;
+  display: grid;
+  place-items: center;
+  background: #222;
+  color: #fff;
+  border: 2px solid #555;
   transform:
     translate(-50%, -50%)
     rotate(calc(-360deg * var(--i) / var(--n)));
   z-index: 2;
 }
 
-/* label sits along the same radial, just past the seat edge (~5px) */
+button {
+  background-color: #222;
+  color: white;
+  border: 0;
+}
+
+/* === LABEL (OUTSIDE) === */
 .label {
   position: absolute;
   left: 50%;
@@ -62,7 +70,7 @@
     translate(calc(var(--seat)/2 + var(--label-gap)), -50%)
     rotate(calc(-360deg * var(--i) / var(--n)));
   white-space: nowrap;
-  background: rgba(0,0,0,.75);
+  background: rgba(0, 0, 0, 0.75);
   color: #fff;
   padding: 4px 8px;
   border-radius: 8px;
@@ -71,15 +79,14 @@
   z-index: 3;
 }
 
-/* === NEW: inner role chip — inside the seat circle ===
-   Mirrors the label placement, but moves INWARD instead of outward. */
+/* === ROLE CIRCLE (INSIDE) === */
 .role-circle {
   position: absolute;
   left: 50%;
   top: 50%;
   transform:
-    translate(calc(-1 * (var(--seat)/2 + var(--role-gap))), -50%) /* inward by seat/2 + gap */
-    rotate(calc(-360deg * var(--i) / var(--n)));                 /* keep text upright */
+    translate(calc(-1 * (var(--seat)/2 + var(--role-gap))), -50%)
+    rotate(calc(-360deg * var(--i) / var(--n)));
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -91,15 +98,44 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.35) inset;
-  z-index: 3; /* above the seat face */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35) inset;
+  z-index: 3;
 }
 
-/* if your mat-card is clipping, keep overflow visible */
-.mat-mdc-card, .mat-mdc-card-content { overflow: visible; }
+/* === INNER INFO RING (NEW) === */
+.info-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform:
+    translate(
+      calc(-1 * (var(--seat)/2 + var(--role-gap) - var(--info-gap))),
+      -50%
+    )
+    rotate(calc(-360deg * var(--i) / var(--n)));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
 
-button {
-    background-color: #222;
-    color: white;
-    border: 0;
+.info-slot {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #f3f3f3;
+  color: #222;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
+  pointer-events: none;
+}
+
+/* === MATERIAL OVERRIDES === */
+.mat-mdc-card,
+.mat-mdc-card-content {
+  overflow: visible;
 }
