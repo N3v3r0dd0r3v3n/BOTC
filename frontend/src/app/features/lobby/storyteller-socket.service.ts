@@ -52,8 +52,10 @@ export class StoryTellerSocketService {
         if (msg.type === "state") {
           this._latest.set(msg);
         } else if (msg.type === "event" || msg.type === "patch") {
-          alert("Feed imperative ffs")
           this._imperative.set(msg);
+          if (msg.type === "patch") {
+            alert("Entered night phase?")
+          }
         }
       }),
       error: err => console.error('WS error (st)', err),

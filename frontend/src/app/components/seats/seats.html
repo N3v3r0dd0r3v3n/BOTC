@@ -2,8 +2,6 @@
 <br/>
 <br/>
 <br/>
-{{seats.length}}
-<pre>{{seats | json}}</pre>
 <br/>
 <div
   class="circle-container"
@@ -13,16 +11,24 @@
   [style.--label-pad.px]="labelPad"   
 >
 
+@if (this.isStoryteller) {
+  <div>You're the story teller</div>
+}
+
   @for (seat of seats; track seat ?? $index; let i = $index) {
     <div class="node" [style.--i]="i" [style.--n]="seats.length">
       <div class="anchor"  (click)="sit(seat)">
         <div class="chair"><button><mat-icon style="margin: 12px">event_seat</mat-icon></button></div>
         <div class="label">{{ seat.occupant?.name || 'Empty' }}</div>
         @if (seat.occupant?.role) {
-        <div class="role-circle" class="role-circle"
-            [ngStyle]="{ 'font-size': getRoleFontSize('Washer woman') }">
-            {{seat.occupant!.role.id}}
-        </div>
+          <div class="role-circle" class="role-circle"
+              [ngStyle]="{ 'font-size': getRoleFontSize('Washer woman') }">
+              {{seat.occupant!.role.id}}
+          </div>
+        } @else {
+          <div class="role-circle" class="role-circle"
+              [ngStyle]="{ 'font-size': getRoleFontSize('Washer woman') }">
+          </div>
         }
 
       </div>

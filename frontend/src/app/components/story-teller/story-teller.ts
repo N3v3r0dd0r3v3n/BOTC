@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, effect, Input, OnInit, Signal, signal} from '@angular/core';
 import { GameService } from '../../features/lobby/game.service';
 import { firstValueFrom } from 'rxjs';
-import { RoomService } from '../../features/lobby/room.service';
+import { RoomService } from '../services/room.service';
 import { MatButtonModule } from '@angular/material/button';
 import { Seat } from '../../models/room.model';
 import { RoomStateStore } from '../services/socket-state-service';
@@ -10,7 +10,8 @@ import { RoomStateStore } from '../services/socket-state-service';
   selector: 'app-story-teller',
   imports: [MatButtonModule],
   templateUrl: './story-teller.html',
-  styleUrl: './story-teller.scss'
+  styleUrl: './story-teller.scss',
+  standalone: true
 })
 export class StoryTeller  {
   @Input() roomId?: string;
@@ -25,8 +26,8 @@ export class StoryTeller  {
   ){
     console.log('[StoryTeller] ngOnInit');
     effect(() => {
-      alert("I'm effected")
       const message = this.socketStateStore.imperative();
+      console.log("Imperative has been updated")
       console.log('[StoryTeller] imperative seen:', message);
      });  
   }

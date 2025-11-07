@@ -3,10 +3,8 @@ import { Component, OnInit, Signal, signal, ChangeDetectorRef, effect, WritableS
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
-import { SpectatorSocketService } from './spectator-socket.service';
-import { StoryTellerSocketService } from './storyteller-socket.service';
-import { RoomService } from './room.service';
-import { PlayerSocketService } from './player-socket.service';
+
+import { RoomService } from '../../components/services/room.service';
 import { StoryTeller } from "../../components/story-teller/story-teller";
 import { Player } from "../../components/player/player";
 import { Spectators } from "../../components/spectators/spectators";
@@ -55,7 +53,10 @@ export class RoomViewComponent implements OnInit {
     let initialised = false;
 
     effect(() => {
-      //alert("Affected!!!")
+      const message = this.store.latest()
+      //alert("Something changed in the room!");
+      console.log(message)
+      
       let msg = null;
       if (this.isST) {
         //msg = this.storytellerSocket.imperative();

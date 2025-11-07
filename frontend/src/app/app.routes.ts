@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { Lobby } from './features/lobby/lobby';
-import { RoomViewComponent } from './features/lobby/room-view';
+import { RoomViewComponent } from './features/room/room-view';
 import { AuthGuard } from './core/guards/auth.guard';
 import { RegisterComponent } from './features/register/register';
 

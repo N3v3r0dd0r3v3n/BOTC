@@ -159,6 +159,64 @@ class Game:
     def alive_players(self) -> List[Player]:
         return [p for p in self.players if p.alive]
 
+    def advance(self) -> Phase:
+        """Leave current phase, enter next phase, stay there, and return the new current phase."""
+        cur = self.phase
+        self._on_exit(cur)
+        self.phase = self._next_phase(cur)
+        self._on_enter(self.phase)
+        return self.phase
+
+    @staticmethod
+    def _next_phase(p: Phase) -> Phase:
+        return {
+            Phase.SETUP: Phase.NIGHT,
+            Phase.NIGHT: Phase.DAY,
+            Phase.DAY: Phase.VOTING,
+            Phase.VOTING: Phase.EXECUTION,
+            Phase.EXECUTION: Phase.FINAL_CHECK,
+            Phase.FINAL_CHECK: Phase.NIGHT,
+        }[p]
+
+    def _on_exit(self, p: Phase) -> None:
+        if p == Phase.NIGHT:
+            # resolve dawn deaths
+            for pid in self.pending_dawn:
+                self.mark_dead(pid, "at dawn")
+            self.pending_dawn.clear()
+        elif p == Phase.EXECUTION:
+            self.finish_day()
+
+    def _on_enter(self, p: Phase) -> None:
+        if p == Phase.NIGHT:
+            # increment night on entry
+            self.night = 1 if self.night == 0 else self.night + 1
+            self.night_protected.clear()
+
+            if self.night == 1:
+                self._compute_night_one_info()
+
+            self.wake_list = self.build_wake_list()
+            self.wake_index = 0
+
+            self._emit(DomainEvent("NightPrepared", {
+                "night": self.night,
+                "wake_list": self.wake_list
+            }))
+
+        elif p == Phase.DAY:
+            self.start_day()
+
+    def start_day(self) -> None:
+        # ready the day; call role hooks later as needed
+        # self.best_nomination = None
+        # self.executed_today = None
+        pass
+
+    def finish_day(self) -> None:
+        # resolve block, if any
+        pass
+
     def step(self):
         if self.phase == Phase.SETUP:
             self._setup()

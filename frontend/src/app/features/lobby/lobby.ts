@@ -4,7 +4,7 @@ import { LobbyService } from "./lobby.service";
 import { firstValueFrom } from "rxjs";
 import { Room } from "../../models/room.model";
 import { Router, RouterLink } from "@angular/router";
-import { RoomService } from "./room.service";
+import { RoomService } from "../../components/services/room.service";
 
 @Component({
   standalone: true,

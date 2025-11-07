@@ -85,7 +85,7 @@ class GameRoom:
     def start_game(self, room):
 
         if len(self.players) >= self.min_residents:
-            self.seats = [seat for seat in self.seats if seat["occupant"] if not None]  #Remove empty seats
+            self.seats = [seat for seat in self.seats if seat["occupant"] is not None]  #Remove empty seats
 
             slots = [seat["occupant"].id for seat in self.seats if seat["occupant"] ]
             players = [player for player in self.players]
@@ -98,7 +98,7 @@ class GameRoom:
                 _emit=self._on_event)
 
             self.info.status = "started"
-            self.game.step()
+            #self.game.step()   Don't step  stay where you are.  I think.
 
             # End hack
             # broadcast or send to players and specs?
