@@ -11,10 +11,6 @@
   [style.--label-pad.px]="labelPad"   
 >
 
-@if (this.isStoryteller) {
-  <div>You're the story teller</div>
-}
-
   @for (seat of seats; track seat ?? $index; let i = $index) {
     <div class="node" [style.--i]="i" [style.--n]="seats.length">
       <div class="anchor"  (click)="sit(seat)">

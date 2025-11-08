@@ -112,7 +112,7 @@ class Game:
     wake_index = -1
     n1_info = NightOneInfo()
 
-    def _setup(self):
+    def setup(self):
         deck = self._build_role_deck()
         for role, slot in zip(deck, self.slots):
             self.roles_by_slot[slot] = role
@@ -120,7 +120,7 @@ class Game:
             player.role = role
 
         # Remove this later.  For now I just want to check that DomainEvents are emitted.
-        self._emit(DomainEvent("PlayerExecuted", {"message": "Test message"}))
+        # self._emit(DomainEvent("PlayerExecuted", {"message": "Test message"}))
 
     def _build_role_deck(self) -> list[str]:
         import importlib, pkgutil, botc.roles
@@ -188,6 +188,9 @@ class Game:
             self.finish_day()
 
     def _on_enter(self, p: Phase) -> None:
+        if p == Phase.SETUP:
+            print("Setting up")
+            self._setup()
         if p == Phase.NIGHT:
             # increment night on entry
             self.night = 1 if self.night == 0 else self.night + 1
@@ -216,40 +219,6 @@ class Game:
     def finish_day(self) -> None:
         # resolve block, if any
         pass
-
-    def step(self):
-        if self.phase == Phase.SETUP:
-            self._setup()
-            self._compute_night_one_info()
-            self.phase = Phase.NIGHT
-            self.night = 1
-        elif self.phase == Phase.NIGHT:
-            wake_list = self.build_wake_list()
-            #room.send_to_storyteller(wake_list)
-            #self._emit(PhaseChanged(self.phase, self.night))
-            #self._emit(NightPrepared(self.night, wake))
-            self._emit(DomainEvent("NightPrepared", {"night": self.night, "wake_list": wake_list}))
-
-            for pid in self.pending_dawn:
-                self.mark_dead(pid, "at dawn")
-            self.pending_dawn.clear()
-            self.phase = Phase.DAY
-            self.start_day()
-        elif self.phase == Phase.DAY:
-            self.phase = Phase.VOTING
-        elif self.phase == Phase.VOTING:
-            self.phase = Phase.EXECUTION
-        elif self.phase == Phase.EXECUTION:
-            self.finish_day()
-            self.phase = Phase.FINAL_CHECK
-        elif self.phase == Phase.FINAL_CHECK:
-            #ended = self.rules.check_end(self) if self.rules else False
-            ended = False
-            if not ended:
-                self.night += 1
-                self.phase = Phase.NIGHT
-                self.night_protected.clear()
-        return self.phase
 
     def start_day(self):
         return

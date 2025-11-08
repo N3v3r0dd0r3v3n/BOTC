@@ -98,10 +98,7 @@ class GameRoom:
                 _emit=self._on_event)
 
             self.info.status = "started"
-            #self.game.step()   Don't step  stay where you are.  I think.
-
-            # End hack
-            # broadcast or send to players and specs?
+            self.game.setup()
             self.broadcast()
 
             """

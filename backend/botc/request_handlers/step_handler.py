@@ -14,7 +14,7 @@ class StepHandler(BaseHandler):
         current_phase = room.game.phase
         print("Current phase is " + str(current_phase))
 
-        room.game.step()
+        #room.game.step()
 
         #try this before we fuck around too much
         room.game.advance()
