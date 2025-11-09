@@ -61,6 +61,16 @@ export class RoomStateStore {
     this.role.set('player');
   }
 
+  send(msg: unknown) {
+    const role = this.role();
+    if (!role) {
+      return;
+    }
+
+    const socketService = role === 'st' ? this.st : this.pl;
+    socketService.send(msg);
+  }
+
   closeAll() {
     this.st.close();
     this.pl.close();

@@ -40,20 +40,15 @@ export class StoryTeller  {
           
           for (let index = 0; index < message.tasks.length; index++) {
             const task = message.tasks[index];
-            this.performSetup(task);
+            this.performSelection(task);
           }
 
         } else {
           alert(message.event);
         }
-
-        //console.log(message);
-        //alert(message);
-        //alert("An event has been received.  Maybe put out a dialog box");
-        //this.openDialog();
       }
-      console.log("Imperative has been updated")
-      console.log('[StoryTeller] imperative seen:', message);
+      //console.log("Imperative has been updated")
+      //console.log('[StoryTeller] imperative seen:', message);
      });  
   }
   
@@ -93,12 +88,12 @@ export class StoryTeller  {
   }
 
 
-  private performSetup(task: Task) {
+  private performSelection(task: Task) {
     const dialogRef = this.dialog.open(Dialog, {
       position: {
         left: '10px'
       },
-      width: '500px',
+      width: '300px',
       data: { 
         title: task.prompt,
         options: task.options }
@@ -108,6 +103,17 @@ export class StoryTeller  {
       if (selection) {
         console.log(selection)
         //add the selection to a list of commands to send back to the server.
+        const message = {
+          "id": task.id,
+          "type": "command",
+          "task": {
+            "kind": task.kind,
+            "role": task.role,
+            "owner_id": task.owner_id,
+            "selection": selection
+          }
+        }
+        this.socketStateStore.send(message);
       }
     });
   }

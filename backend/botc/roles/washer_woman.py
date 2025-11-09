@@ -8,9 +8,10 @@ class WasherWoman:
     team = Team.GOOD
     type = RoleType.TOWNSFOLK
     owner = None
+    townsfolk = None
+    wrong = None
 
     def on_setup(self, g: Game):
-        # Find townsfolk, excluding me
         me = g.player(self.owner)
         townsfolk = [
             {"id": p.id,
@@ -22,11 +23,36 @@ class WasherWoman:
                 kind="select_townsfolk",
                 role=self.id,
                 owner_id=me.id,
-                prompt="Pick a tolksfolk for the Washer Woman",
+                prompt="Pick a townsfolk for the Washer Woman",
                 options=townsfolk,
             )
 
-        #TODO The other selection bit.
+    def apply_setup(self, kind: str, selection: dict, game: Game):
+        if kind != "select_townsfolk" and kind != "select_wrong":
+            return
+        me = game.player(self.owner)
+        if kind == "select_townsfolk":
+            if selection['id'] in [p.id for p in game.alive_players()]:
+                self.townsfolk = selection
+
+            wrong_options = [
+                {"id": player.id,
+                 "name": player.name}
+                for player in game.alive_players()
+                if player.id != me.id and player.id != selection['id']
+            ]
+            if wrong_options:
+                game.request_setup_task(
+                    kind="select_wrong",
+                    role=self.id,
+                    owner_id=me.id,
+                    prompt="Pick wrong (bluff) for the Washer Woman",
+                    options=wrong_options,
+                )
+        elif kind == "select_wrong":
+            selected_wrong = selection.get("player_id")
+            if selected_wrong in [p for p in game.alive_players()]:
+                self.wrong = selected_wrong
 
     def on_night(self, g: Game):
         # first night only

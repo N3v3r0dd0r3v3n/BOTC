@@ -28,7 +28,7 @@ class FortuneTeller:
             {"id": p.id,
              "name": p.name}
             for p in g.alive_players()
-            if getattr(p.role, "team", None) == Team.GOOD and p.id != me.id
+            if getattr(p.role, "team", None) == Team.GOOD
         ]
         if goods:
             g.request_setup_task(
@@ -39,13 +39,12 @@ class FortuneTeller:
                 options=goods,
             )
 
-    #WTF IS THIS?
-    def apply_setup(self, kind: str, answer: dict, g: Game):
+    def apply_setup(self, kind: str, selection: dict, game: Game):
         if kind != "select_red_herring":
             return
-        pid = answer.get("player_id")
-        if pid in [p.id for p in g.alive_players()]:
-            self.red_herring = pid
+
+        if selection['id'] in [p.id for p in game.alive_players()]:
+            self.red_herring = selection
 
     def on_night(self, g: Game):
         me = g.player(self.owner)
