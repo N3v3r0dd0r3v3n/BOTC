@@ -12,11 +12,13 @@ export interface Room {
   info: {
     gid: string;
     name: string;
-    story_teller_id: number;
-    story_teller_name: string;
+    storyteller_id: number;
+    storyteller_name: string;
     script_name: string;
     status: 'open' | 'started' | 'finished';
-  }
+  },
+  players: number
+  seats: Seat[]
 }
 
 export interface LobbyResponse {

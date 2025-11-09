@@ -6,10 +6,26 @@ from enum import Enum, auto
 from typing import Optional, List, Dict, Callable, Any, Set
 
 from botc.prompt import AutoPrompt
-from botc.scripts import Script
 from botc.scripts import ROLE_REGISTRY
+from botc.scripts import Script
 
 Noop = lambda ev: None
+
+
+class TaskStatus(Enum):
+    PENDING = auto()
+    DONE = auto()
+
+@dataclass
+class SetupTask:
+    id: int
+    kind: str
+    role: str
+    owner_id: int
+    prompt: str
+    options: List[int]
+    payload: Dict = field(default_factory=dict)
+    status: TaskStatus = TaskStatus.PENDING
 
 
 class Team(Enum):
@@ -121,6 +137,18 @@ class Game:
 
         # Remove this later.  For now I just want to check that DomainEvents are emitted.
         # self._emit(DomainEvent("PlayerExecuted", {"message": "Test message"}))
+
+    def request_setup_task(self, *, kind: str, role: str, owner_id: int,
+                           prompt: str, options: list[int] | None = None,
+                           payload: dict | None = None) -> None:
+        self._emit(DomainEvent("SetupTaskRequested", {
+            "kind": kind,
+            "role": role,
+            "owner_id": owner_id,
+            "prompt": prompt,
+            "options": options or [],
+            "payload": payload or {},
+        }))
 
     def _build_role_deck(self) -> list[str]:
         import importlib, pkgutil, botc.roles

@@ -1,8 +1,5 @@
 <br/>
 <br/>
-<br/>
-<br/>
-<br/>
 <div
   class="circle-container"
   [style.--radius.px]="radius"        
@@ -15,7 +12,9 @@
     <div class="node" [style.--i]="i" [style.--n]="seats.length">
       <div class="anchor"  (click)="sit(seat)">
         <div class="chair"><button><mat-icon style="margin: 12px">event_seat</mat-icon></button></div>
-        <div class="label">{{ seat.occupant?.name || 'Empty' }}</div>
+        @if (seat.occupant){
+          <div class="label">{{ seat.occupant.name || "Empty"}}</div>
+        }
         @if (seat.occupant?.role) {
           <div class="role-circle" class="role-circle"
               [ngStyle]="{ 'font-size': getRoleFontSize('Washer woman') }">
@@ -38,3 +37,5 @@
   }
 </div>
 
+<br/>
+<br/>

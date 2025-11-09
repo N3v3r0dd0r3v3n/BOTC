@@ -15,10 +15,37 @@ class FortuneTeller:
     def __init__(self):
         self.red_herring: int | None = None
 
+    """
     def on_setup(self, g: Game):
         goods = [p for p in g.alive_players() if getattr(p.role, "team", None) == Team.GOOD]
         if goods:
             self.red_herring = random.choice(goods).id
+    """
+
+    def on_setup(self, g: Game):
+        me = g.player(self.owner)
+        goods = [
+            {"id": p.id,
+             "name": p.name}
+            for p in g.alive_players()
+            if getattr(p.role, "team", None) == Team.GOOD and p.id != me.id
+        ]
+        if goods:
+            g.request_setup_task(
+                kind="select_red_herring",
+                role=self.id,
+                owner_id=me.id,
+                prompt="Pick a red herring for the Fortune Teller",
+                options=goods,
+            )
+
+    #WTF IS THIS?
+    def apply_setup(self, kind: str, answer: dict, g: Game):
+        if kind != "select_red_herring":
+            return
+        pid = answer.get("player_id")
+        if pid in [p.id for p in g.alive_players()]:
+            self.red_herring = pid
 
     def on_night(self, g: Game):
         me = g.player(self.owner)
@@ -30,7 +57,8 @@ class FortuneTeller:
 
         cand_ids = [p.id for p in others]
         pick = g.prompt.choose_two(self.owner, cand_ids, "Choose two players")
-        if not pick: return
+        if not pick:
+            return
         a = g.player(pick[0]); b = g.player(pick[1])
 
         demon_present = any(getattr(p.role, "type", None) == RoleType.DEMON for p in (a, b))

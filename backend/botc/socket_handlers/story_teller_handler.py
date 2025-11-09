@@ -39,6 +39,15 @@ class StorytellerSocket(tornado.websocket.WebSocketHandler):
             # (optional) storyteller controls like step-phase, nominate, execute, etc.
             # For now, we just no-op and rebroadcast.
             pass
+        if msg.get("type") == "perform_task":
+            cid = msg.get("cid")
+            try:
+                ok = self.room.perform_setup_task(task_id=int(msg["id"]), answer=msg.get("answer", {}))
+            except ValueError as e:
+                return self.send(json.dumps({"type": "error", "error": str(e), "cid": cid}))
+            if not ok:
+                return self.send(json.dumps({"type": "error", "error": "invalid_task", "cid": cid}))
+            return
         self.room.broadcast()
 
     def on_close(self):

@@ -1,25 +1,16 @@
 <ng-container *ngIf="ready">
 
-
-{{getVisitor().name}}
-
 @if (latest()) {
-    <button matButton="elevated" type="submit" (click)="leave()">Leave</button>
-    <br/>
-    <br/>
     <mat-card appearance="outlined">
-        <mat-card-content>
-            <div class="mat-typography">
-                <h2>{{ getRoom().name }} <small>({{getRoom().gid}})</small></h2>
-                <p>Story teller: {{ getRoom().storyteller_name }}</p>
-                <p>Script: {{ getRoom().script_name }}</p>
-                <p>Status: {{ getRoom().status }}</p>
-            </div>
-        </mat-card-content>
-    </mat-card>
-    <br/>
-    <mat-card appearance="outlined">
-        <mat-card-content>
+        <mat-card-content class="mat-typography">
+            <p>
+                <button mat-button="elevated" type="submit" (click)="leave()">Leave</button>
+                <b>{{ getRoom().name }}</b>({{getRoom().gid}}) 
+                <b>Story teller:</b> {{ getRoom().storyteller_name }} 
+                <b>Script:</b> {{ getRoom().script_name }} 
+                <b>Status:</b> {{ getRoom().status }}
+                <span class="name">{{getVisitor().name}}</span>
+            </p>
             @if (isStoryTeller()) {
                 <app-story-teller
                     [phase]="latest().view.phase"
@@ -28,6 +19,7 @@
                     [seats]="this.getSeats()"
                 >
                 </app-story-teller>
+                <br/>
             }
             @if (!isStoryTeller()) {
                 <app-player></app-player>

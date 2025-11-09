@@ -1,6 +1,7 @@
 from botc.scripts import register_role
 from botc.model import Team, RoleType, Game
 
+
 @register_role
 class Drunk:
     id = "Drunk"

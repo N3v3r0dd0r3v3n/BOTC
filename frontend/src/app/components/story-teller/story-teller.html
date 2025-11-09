@@ -1,10 +1,10 @@
 @if (phase) {   
     Phase: {{phase.toLowerCase()}}
-    <button matButton="elevated" type="submit" (click)="step(roomId!)">Next phase</button>
+    <button mat-button class="small-button" type="submit" (click)="step(roomId!)">Next phase</button>
 } @else {
-    <button matButton="elevated" type="submit" (click)="this.setupGame()" [disabled]="this.hasMinimumPlayers()">Start Game</button>&nbsp;
+    <button mat-button class="small-button" type="submit" (click)="this.setupGame()" [disabled]="this.hasMinimumPlayers()">Start Game</button>&nbsp;
 }
-Just so that I don't have to keep getting players to join: <button matButton="elevated" type="submit" (click)="this.setupGame()" [disabled]="this.hasMinimumPlayers()">Start Game</button>&nbsp;
-<button matButton="elevated" type="submit" (click)="addSeat()" [disabled]="this.hasMaximumSeats()">Add Seat</button>&nbsp;
-<button matButton="elevated" type="submit" (click)="removeSeat()" [disabled]="this.hasMinimumSeats()">Remove Seat</button>
+Just so that I don't have to keep getting players to join: <button mat-button class="small-button" type="submit" (click)="this.setupGame()" [disabled]="this.hasMinimumPlayers()">Start Game</button>&nbsp;
+<button mat-button class="small-button" type="submit" (click)="addSeat()" [disabled]="this.hasMaximumSeats()">Add Seat</button>&nbsp;
+<button mat-button class="small-button" type="submit" (click)="removeSeat()" [disabled]="this.hasMinimumSeats()">Remove Seat</button>
 

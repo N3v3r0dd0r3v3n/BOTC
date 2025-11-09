@@ -4,6 +4,6 @@
   <li *ngFor="let room of lobby()">
     <a [routerLink]="['/room', room.info.gid]">
       {{ room.info.name }} 
-    </a> {{room.info.status}}
+    </a> - Story teller: {{room.info.storyteller_name}} {{room.players}}/{{room.seats.length}} players ({{room.info.status}})
   </li>
 </ul>

@@ -54,8 +54,13 @@ export class StoryTellerSocketService {
         } else if (msg.type === "event" || msg.type === "patch") {
           this._imperative.set(msg);
           if (msg.type === "patch") {
+            
             alert("Entered night phase?")
+            alert("Shouldn't i be agnostic?")
           }
+        } else {
+          console.log("What type have i just received " + msg.type);
+          console.log("Note to self.  When I receive a message I need to work out if I am updating the latest or the imperative"); 
         }
       }),
       error: err => console.error('WS error (st)', err),
@@ -64,6 +69,8 @@ export class StoryTellerSocketService {
 
     await openedPromise;
   }
+
+  
 
   send(msg: unknown): void {
     this.socket?.next(msg);

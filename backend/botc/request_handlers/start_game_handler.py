@@ -13,7 +13,7 @@ class StartGameHandler(BaseHandler):
             return
         body = json.loads(self.request.body or b"{}")
 
-        ok = room.start_game(room)
+        ok = room.start_game()
 
         if not ok:
             self.set_status(400)

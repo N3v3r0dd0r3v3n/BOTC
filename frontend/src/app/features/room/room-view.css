@@ -4,4 +4,10 @@ h2 small {
   opacity: 0.8;
 }
 
+.name {
+  color: whitesmoke;
+  background-color: indigo;
+  float:right;
+}
+
 .mat-mdc-card, .mat-mdc-card-content { overflow: visible; }

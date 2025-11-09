@@ -5,7 +5,7 @@ from typing import List, Set, Dict
 
 from botc.messages import spectator_joined_message, player_taken_seat, player_vacated_seat, player_left_message, \
     role_assigned_info_message, night_prepared_message
-from botc.model import RoomInfo, Game, DomainEvent
+from botc.model import RoomInfo, Game, DomainEvent, SetupTask, TaskStatus, Phase
 from botc.scripts import Script
 from botc.view import view_for_player, view_for_storyteller, view_for_room
 from botc.ws.prompt_bus import PromptBus
@@ -23,44 +23,50 @@ class GameRoom:
             name=name,
             script_name=script.name,
             storyteller_name=creator['name'],
-            storyteller_id=creator['id'])
+            storyteller_id=creator['id']
+        )
         self.bus = PromptBus()
         self.spectators: List[Spectator] = []
         self.players: List[Player] = []
         self.seats = [{"seat": i + 1, "occupant": None} for i in range(initial_seat_count)]
-        self.game = None
+        self.game: Game | None = None
 
         self.room_viewers: Set["RoomViewerSocket"] = set()
-        self.player_sockets = defaultdict(set)
+        self.player_sockets: Dict[int, Set] = defaultdict(set)
 
+        self.storytellerSocket = None  # set by StorytellerSocket.open
+
+        self._next_task_id = 1
+        self.setup_tasks: List[SetupTask] = []
+
+    # ---------------------------
+    # Room viewers (spectators of the room state, not players)
+    # ---------------------------
     def add_room_viewer(self, sock):
         self.room_viewers.add(sock)
 
     def remove_room_viewer(self, sock):
         self.room_viewers.discard(sock)
 
+    # ---------------------------
+    # Seats management
+    # ---------------------------
     def update_max_seats(self, new_max: int) -> tuple[bool, str | None]:
         if new_max < self.min_residents:
             return False, "min_seats_is_5"
         if new_max > self.max_residents:
             return False, "max_seats_is_20"
 
-        # how many seats currently occupied
         occupied = sum(1 for s in self.seats if s["occupant"] is not None)
-
         if new_max < occupied:
             return False, "cannot_reduce_below_occupied_seats"
 
         current = len(self.seats)
 
-        # grow
         if new_max > current:
             for i in range(current, new_max):
                 self.seats.append({"seat": i + 1, "occupant": None})
-
-        # shrink (safe only if seat unoccupied)
         elif new_max < current:
-            # remove only from the end if empty
             for i in range(current - 1, -1, -1):
                 seat = self.seats[i]
                 if seat["occupant"] is None:
@@ -70,107 +76,71 @@ class GameRoom:
         self.broadcast()
         return True, None
 
+    # ---------------------------
+    # Players (pre-game)
+    # ---------------------------
     def is_full(self) -> bool:
-        return len(self.game.players) >= self.info.max_players
+        # If you track max players elsewhere, adjust this check accordingly.
+        # Fallback: cannot exceed seat count.
+        return len([s for s in self.seats if s["occupant"] is not None]) >= len(self.seats)
 
     def add_player(self, player_name: str) -> dict | None:
-        if self.info.status != "open" or self.is_full():
+        if getattr(self.info, "status", "open") != "open":
             return None
-        seat = len(self.game.players) + 1
-        from botc.model import Player
-        p = Player(id=seat, name=player_name, seat=seat)
-        self.game.players.append(p)
+        free_seats = [s for s in self.seats if s["occupant"] is None]
+        if not free_seats:
+            return None
+
+        seat_no = free_seats[0]["seat"]
+        p = Player(id=seat_no, name=player_name, seat=seat_no)
+        free_seats[0]["occupant"] = p
+        self.players.append(p)
+
         return {"id": p.id, "seat": p.seat, "name": p.name}
 
-    def start_game(self, room):
-
-        if len(self.players) >= self.min_residents:
-            self.seats = [seat for seat in self.seats if seat["occupant"] is not None]  #Remove empty seats
-
-            slots = [seat["occupant"].id for seat in self.seats if seat["occupant"] ]
-            players = [player for player in self.players]
-
-            #Remove setup once I am happy that I've got it working correctly.
-            self.game = Game(
-                slots=slots,
-                players=players,
-                script=self.script,
-                _emit=self._on_event)
-
-            self.info.status = "started"
-            self.game.setup()
-            self.broadcast()
-
-            """
-
-            roles_by_slot = self.game.roles_by_slot
-
-            for pid, socks in list(self.player_sockets.items()):
-                role = roles_by_slot[pid]
-                msg = role_assigned_info_message(gid=self.info.gid, role_name=role.id, meta="hurrah")
-                dead = []
-                for sock in list(socks):
-                    try:
-                        sock.send(msg)
-                        pass
-                    except Exception:
-                        dead.append(sock)
-                for d in dead:
-                    socks.discard(d)
-                if not socks:
-                    del self.player_sockets[pid]
-                if role and hasattr(role, "on_setup"):
-                    role.on_setup(self.game)
-            """
-        return True
-
-    """
-    def start_game(self, role_names: List[str] | None = None):
-        import random
-        from botc.scripts import ROLE_REGISTRY
-        from botc.cli import assign_by_names, default_roles_for
-
-        # must be seated and within capacity
-        if any(p.seat is None for p in self.game.players):
-            return False  # some players unseated
-        if len(self.game.players) > self.info.max_players:
-            return False
-        # normalize players by seat order 1..N
-        seated = sorted([p for p in self.game.players if p.seat is not None], key=lambda p: p.seat)
-        # reassign ids 1..N for engine consistency (optional, but tidy)
-        self.game.players = seated
-
-        n = len(self.game.players)
-        if n == 0:
+    # ---------------------------
+    # Start Game
+    # ---------------------------
+    def start_game(self) -> bool:
+        if len(self.players) < self.min_residents:
             return False
 
-        if role_names is None:
-            allowed = [r for r in self.game.script.roles if r in ROLE_REGISTRY]
-            if len(allowed) < n:
-                allowed = default_roles_for(n)
-            chosen = random.sample(allowed, n) if len(allowed) >= n else allowed[:n]
-        else:
-            chosen = role_names
+        # collapse to occupied seats only
+        self.seats = [seat for seat in self.seats if seat["occupant"] is not None]
 
-        # clear and assign
-        for p in self.game.players:
-            p.role = None
-            p.alive = True
-            p.ghost_vote_available = False
+        slots = [seat["occupant"].id for seat in self.seats if seat["occupant"]]
+        players = [player for player in self.players]
 
-        assign_by_names(self.game, chosen)
+        self.game = Game(
+            slots=slots,
+            players=players,
+            script=self.script
+        )
 
-        for p in self.game.players:
-            if p.role and hasattr(p.role, "on_setup"):
-                p.role.on_setup(self.game)
+        # Single domain event hook
+        self.game._emit = self.domain_event
 
         self.info.status = "started"
+
+        # Assign roles and run role on_setup (roles may request setup tasks)
+        self.game.setup()
+
+        for player in self.game.players:
+            role = getattr(player, "role", None)
+            if not role:
+                continue
+            if getattr(role, "owner", None) != player.id:
+                setattr(role, "owner", player.id)
+            if getattr(role, "on_setup"):
+                role.on_setup(self.game)
+
+        self.broadcast()
         return True
 
-    # broadcast helpers
-    """
-
-    def send_to_storyteller(self, msg: str):
+    # ---------------------------
+    # Messaging to ST and clients
+    # ---------------------------
+    def send_to_storyteller(self, msg):
         import json
         if not self.storytellerSocket:
             return
@@ -179,8 +149,12 @@ class GameRoom:
         else:
             self.storytellerSocket.write_message(json.dumps(msg))
 
+    def _notify_st(self, msg: dict) -> None:
+        if getattr(self, "storytellerSocket", None):
+            self.storytellerSocket.send(msg)
+
     def broadcast(self):
-        #Broadcast game state
+        # players (per-player view)
         for pid, socks in list(self.player_sockets.items()):
             msg = {"type": "state", "view": view_for_player(self.game, pid, self)}
             dead = []
@@ -194,16 +168,14 @@ class GameRoom:
             if not socks:
                 del self.player_sockets[pid]
 
+        # storyteller
         if self.storytellerSocket:
             try:
-                print("Sending")
                 self.storytellerSocket.send({"type": "state", "view": view_for_storyteller(self.game, self)})
-                print("Sent")
-            except Exception as ex:
+            except Exception:
                 self.storytellerSocket = None
-                print("Something went wrong")
-                print(ex)
-        # viewers
+
+        # room viewers
         if self.room_viewers:
             room_view = {"type": "state", "view": view_for_room(self)}
             gone = []
@@ -215,11 +187,16 @@ class GameRoom:
             for g in gone:
                 self.room_viewers.discard(g)
 
-    # called by sockets
+    # ---------------------------
+    # Prompt responses (for choose_one/two, etc.)
+    # ---------------------------
     def respond(self, cid: int, answer):
         self.bus.fulfill(cid, answer)
         self.broadcast()
 
+    # ---------------------------
+    # Lookups
+    # ---------------------------
     def player_by_id(self, pid: int):
         return next((p for p in self.players if p.id == pid), None)
 
@@ -238,8 +215,10 @@ class GameRoom:
         else:
             return False
 
+    # ---------------------------
+    # Join / Leave / Seat
+    # ---------------------------
     def join_unseated(self, spectator_id, spectator_name: str) -> dict | None:
-
         if not self.is_storyteller(stid=spectator_id) \
                 and not self.is_spectator(sid=spectator_id) \
                 and not self.is_player(pid=spectator_id):
@@ -258,45 +237,35 @@ class GameRoom:
 
         player = next((p for p in getattr(self, "players", []) if p.id == player_id), None)
         if player is None:
-            # As a safety net, if seats store full Player objects, check seats directly
             occ_seat_idx = next((i for i, s in enumerate(self.seats)
                                  if s["occupant"] is not None
                                  and getattr(s["occupant"], "id", None) == player_id), None)
             if occ_seat_idx is None:
                 return False, "not_in_room"
-            # Recover the player object from the seat
             player = self.seats[occ_seat_idx]["occupant"]
 
-        #If seated, clear the seat
         seat_no = getattr(player, "seat", None)
         if seat_no is not None:
             if 1 <= seat_no <= len(self.seats):
                 seat = self.seats[seat_no - 1]
-                # Only clear if the occupant is this player
                 if seat["occupant"] is not None and getattr(seat["occupant"], "id", None) == player.id:
                     seat["occupant"] = None
             player.seat = None
 
-        #Remove from players list if present
+        spec = Spectator(id=player.id, name=player.name)
+        self.spectators.append(spec)
+
         if hasattr(self, "players"):
             self.players = [p for p in self.players if p.id != player_id]
 
         self.send_to_storyteller(player_left_message(self.info.gid, player.id, player.name, seat_no))
-
         self.broadcast()
         return True, None
 
     def sit(self, sid: int, seat_no: int) -> tuple[bool, str | None]:
-        #if self.info.status != "open":
-        #    return False, "room_not_open"
-
-        #If the game has started then we need to think about checking if the seat has a role assigned to it
-        #If so, adopt it.
-
         if not (1 <= seat_no <= len(self.seats)):
             return False, "invalid_seat"
 
-        # find spectator
         spectator = next((s for s in self.spectators if s.id == sid), None)
         if not spectator:
             return False, "spectator_not_found"
@@ -305,32 +274,25 @@ class GameRoom:
         if seat["occupant"] is not None:
             return False, "seat_occupied"
 
-        # create Player and occupy the seat
-
         player = Player(id=spectator.id, name=spectator.name, seat=seat_no)
-
         seat["occupant"] = player
 
-        # remove from spectators
         self.spectators = [s for s in self.spectators if s.id != sid]
 
-        # ensure self.players exists
         if not hasattr(self, "players"):
             self.players = []
         self.players.append(player)
 
         self.send_to_storyteller(player_taken_seat(self.info.gid, spectator.id, spectator.name, seat_no))
         self.broadcast()
-
         return True, None
 
     def vacate(self, pid: int, seat_no: int) -> tuple[bool, str | None]:
-
         if not (1 <= seat_no <= len(self.seats)):
             return False, "invalid_seat"
 
         seat = self.seats[seat_no - 1]
-        occ = seat["occupant"]  # expected to be a Player or None
+        occ = seat["occupant"]
 
         if occ is None:
             return False, "seat_empty"
@@ -338,84 +300,95 @@ class GameRoom:
         if occ.id != pid:
             return False, "seat_not_occupied_by_player"
 
-        # find the player object in room.players (if you keep full Player objects there)
         player = next((p for p in getattr(self, "players", []) if p.id == pid), None)
         if player is None:
-            # if players list missing the object, use the occupant instance
             player = occ
 
-        # clear the seat
         seat["occupant"] = None
         if hasattr(player, "seat"):
             player.seat = None
 
-        # move to spectators
         spec = Spectator(id=player.id, name=player.name)
         self.spectators.append(spec)
 
-        # remove from players list if present
         if hasattr(self, "players"):
             self.players = [p for p in self.players if p.id != pid]
 
         msg = player_vacated_seat(self.info.gid, player.id, player.name, seat_no)
         self.send_to_storyteller(msg)
         self.broadcast()
-
         return True, None
 
-    def _on_event(self, ev: DomainEvent):
-        if ev.type == "NightPrepared":
-            msg = night_prepared_message(self.info.gid, ev.data)
-            self.send_to_storyteller(msg);
-        # "NightPrepared", {"night": self.night, "wake_list": wake_list}))
-        """if ev.type == "NominationStarted":
-            self._send_to_storyteller(event_envelope(self.gid, "NominationStarted", ev.data))
-            self.broadcast()
+    # ---------------------------
+    # Domain events (single entry point)
+    # ---------------------------
+    def domain_event(self, ev: DomainEvent) -> None:
+        """Single entry point for all Game -> Room domain events."""
+        t = ev.type
+        d = ev.data
 
-        elif ev.type == "VirginTriggered":
-            # ST gets explicit Virgin trigger
-            self._send_to_storyteller(event_envelope(self.gid, "VirginTriggered", ev.data))
+        # Night flow to ST
+        if t == "NightPrepared":
+            msg = night_prepared_message(self.info.gid, d)
+            self.send_to_storyteller(msg)
+            return
 
-        elif ev.type == "PlayerExecuted":
-            pid = ev.data["player_id"]
-            msg = player_executed_message(self.gid, pid, ev.data.get("reason"))
-            self._broadcast_all(msg)      # everyone can know execution (no role leakage)
-            self.broadcast()              # refresh state
+        # Setup tasks (requested by roles during Game.setup() / role.on_setup)
+        if t == "SetupTaskRequested":
+            task = SetupTask(
+                id=self._next_task_id,
+                kind=d["kind"],
+                role=d["role"],
+                owner_id=d["owner_id"],
+                prompt=d["prompt"],
+                options=list(d.get("options", [])),
+                payload=dict(d.get("payload", {})),
+            )
+            self._next_task_id += 1
+            self.setup_tasks.append(task)
+            self._notify_st({"type": "event", "event": "setup_tasks", "tasks": [self._public_task(task)]})
+            return
 
-        elif ev.type == "NominationClosed":
-            self._send_to_storyteller(event_envelope(self.gid, "NominationClosed", ev.data))
-            self.broadcast()
+        # (Add other event types here as needed...)
 
-        elif ev.type == "NominationOpenForVoting":
-            self._broadcast_all(event_envelope(self.gid, "NominationOpenForVoting", ev.data))"""
+    # ---------------------------
+    # Setup task helpers
+    # ---------------------------
+    def perform_setup_task(self, *, task_id: int, answer: Dict) -> bool:
+        t = next((x for x in self.setup_tasks if x.id == task_id), None)
+        if not t or t.status != TaskStatus.PENDING:
+            return False
+        if t.options:
+            pid = answer.get("player_id")
+            if pid not in t.options:
+                raise ValueError("invalid_choice")
 
-    """
-        def as_dict(self) -> dict:
-        #Return a JSON-safe representation of this room.
+        owner = self.game.player(t.owner_id)
+        role = getattr(owner, "role", None)
+        if not role or getattr(role, "id", "") != t.role or not hasattr(role, "apply_setup"):
+            raise ValueError("role_mismatch")
+
+        role.apply_setup(t.kind, answer, self.game)
+
+        t.status = TaskStatus.DONE
+        self._notify_st({"type": "event", "event": "task_done", "id": t.id})
+        self.broadcast()
+
+        if not any(x.status == TaskStatus.PENDING for x in self.setup_tasks) and self.game.phase == Phase.SETUP:
+            self._notify_st({"type": "event", "event": "setup_complete"})
+        return True
+
+    @staticmethod
+    def _public_task(t: SetupTask) -> Dict:
         return {
-            "gid": self.gid,
-            "name": self.info.name,
-            "script_name": self.info.script_name,
-            "status": self.info.status,
-            "spectators": [
-                {"id": s.id, "name": s.name} for s in self.spectators
-            ],
-            "seats": [
-                {
-                    "seat": s["seat"],
-                    "occupant": (
-                        None if s["occupant"] is None
-                        else {
-                            "id": s["occupant"].id,
-                            "name": s["occupant"].name,
-                            "seat": s["occupant"].seat,
-                        }
-                    ),
-                }
-                for s in self.seats
-            ],
+            "id": t.id,
+            "kind": t.kind,
+            "role": t.role,
+            "owner_id": t.owner_id,
+            "prompt": t.prompt,
+            "options": list(t.options),
+            "status": t.status.name,
         }
-    """
 
 
 rooms: Dict[str, GameRoom] = {}
