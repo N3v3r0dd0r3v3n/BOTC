@@ -44,7 +44,11 @@ export class StoryTeller  {
           }
 
         } else {
-          alert(message.event);
+          alert("@@@@@@ " + message.event);
+        }
+      } else if (message.type == "patch") {
+        if (message.kind == "PhaseChange") {
+          alert("Phase changed.  But to what?????")
         }
       }
       //console.log("Imperative has been updated")

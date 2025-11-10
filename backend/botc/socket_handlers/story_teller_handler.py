@@ -57,7 +57,8 @@ class StorytellerSocket(tornado.websocket.WebSocketHandler):
                 return self.send(json.dumps({"type": "error", "error": "invalid_task", "cid": cid}))
             return
         """
-        self.room.broadcast()
+        #Surely just broadcast to story teller.
+        #self.room.broadcast()
 
     def on_close(self):
         if self.room and self.room.storytellerSocket is self:

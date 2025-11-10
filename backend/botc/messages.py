@@ -53,7 +53,7 @@ def role_assigned_info_message(gid: str, role_name: str, meta: str):
         }
     )
 
-
+"""
 def spectator_joined_message(gid: str, spectator_id: str, spectator_name: str):
     return construct_event_message(
         SPECTATOR_JOINED,
@@ -62,7 +62,7 @@ def spectator_joined_message(gid: str, spectator_id: str, spectator_name: str):
             "spectator_id": spectator_id,
             "spectator_name": spectator_name
         })
-
+"""
 
 def spectator_left_message(gid: str, spectator_id: str, spectator_name: str):
     return construct_event_message(
@@ -73,7 +73,7 @@ def spectator_left_message(gid: str, spectator_id: str, spectator_name: str):
             "spectator_name": spectator_name
         })
 
-
+"""
 def player_taken_seat(gid: str, spectator_id: str, spectator_name: str, seat: int):
     return construct_event_message(
         PLAYER_TAKEN_SEAT,
@@ -83,7 +83,7 @@ def player_taken_seat(gid: str, spectator_id: str, spectator_name: str, seat: in
             "spectator_name": spectator_name,
             "seat": seat
         })
-
+"""
 
 def player_vacated_seat(gid: str, spectator_id: str, spectator_name: str, seat: int):
     return construct_event_message(

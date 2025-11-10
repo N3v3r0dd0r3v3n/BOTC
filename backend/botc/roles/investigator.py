@@ -1,5 +1,6 @@
 from botc.scripts import register_role
 from botc.model import Team, RoleType, Game
+from botc.view import role_view
 
 
 @register_role
@@ -15,7 +16,8 @@ class Investigator:
         me = g.player(self.owner)
         minions = [
             {"id": p.id,
-             "name": p.name}
+             "name": p.name,
+             "role": role_view(p.role)}
             for p in g.alive_players()
             if p.id != me.id and getattr(p.role, "type", None) == RoleType.MINION]
         if minions:
@@ -37,7 +39,8 @@ class Investigator:
 
             wrong_options = [
                 {"id": player.id,
-                 "name": player.name}
+                 "name": player.name,
+                 "role": role_view(player.role)}
                 for player in game.alive_players()
                 if player.id != me.id and player.id != selection['id']
             ]

@@ -11,6 +11,12 @@
                 <b>Status:</b> {{ getRoom().status }}
                 <span class="name">{{getVisitor().name}}</span>
             </p>
+            <p>
+                {{ latest() | json}}
+                @if (latest().view.phase == "NIGHT") {
+                    {{latest().view.phase}}  {{latest().view.night}}
+                }
+            </p>
             @if (isStoryTeller()) {
                 <app-story-teller
                     [phase]="latest().view.phase"

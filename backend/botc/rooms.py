@@ -3,7 +3,9 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import List, Set, Dict
 
-from botc.messages import spectator_joined_message, player_taken_seat, player_vacated_seat, player_left_message, \
+# spectator_joined_message
+# player_taken_seat,
+from botc.messages import player_vacated_seat, player_left_message, \
     role_assigned_info_message, night_prepared_message
 from botc.model import RoomInfo, Game, DomainEvent, SetupTask, TaskStatus, Phase
 from botc.scripts import Script
@@ -105,36 +107,35 @@ class GameRoom:
         if len(self.players) < self.min_residents:
             return False
 
+        # a bit naughty but roles should be assigned to seats, not players!
+        # what happens if a player leaves a seat and a new one joins?  they'd be the role that the other person was!
+
         # collapse to occupied seats only
         self.seats = [seat for seat in self.seats if seat["occupant"] is not None]
 
         slots = [seat["occupant"].id for seat in self.seats if seat["occupant"]]
-        players = [player for player in self.players]
+
+        # Clear out any player roles (seat roles too once i've fixed that poor design decision)
+        for player in self.players:
+            player.role = None
 
         self.game = Game(
             slots=slots,
-            players=players,
+            players=self.players,
             script=self.script
         )
 
+        # Broadcast here to clear out existing roles etc
+        self.broadcast()
+
         # Single domain event hook
         self.game._emit = self.domain_event
-
-        self.info.status = "started"
+        self.info.status = "In-play"
 
         # Assign roles and run role on_setup (roles may request setup tasks)
         self.game.setup()
-
-        for player in self.game.players:
-            role = getattr(player, "role", None)
-            if not role:
-                continue
-            if getattr(role, "owner", None) != player.id:
-                setattr(role, "owner", player.id)
-            if getattr(role, "on_setup"):
-                role.on_setup(self.game)
-
-        self.broadcast()
+        # Only storyteller knows roles at this point.
+        self.send_to_storyteller({"type": "state", "view": view_for_storyteller(self.game, self)})
         return True
 
     # ---------------------------
@@ -224,7 +225,6 @@ class GameRoom:
                 and not self.is_player(pid=spectator_id):
             spectator = Spectator(id=spectator_id, name=spectator_name)
             self.spectators.append(spectator)
-            self.send_to_storyteller(spectator_joined_message(self.info.gid, spectator_id, spectator_name))
             self.broadcast()
 
         return {"id": spectator_id, "name": spectator_name}
@@ -258,7 +258,8 @@ class GameRoom:
         if hasattr(self, "players"):
             self.players = [p for p in self.players if p.id != player_id]
 
-        self.send_to_storyteller(player_left_message(self.info.gid, player.id, player.name, seat_no))
+        # do i need to do this if i am broadcasting
+        # self.send_to_storyteller(player_left_message(self.info.gid, player.id, player.name, seat_no))
         self.broadcast()
         return True, None
 
@@ -283,7 +284,7 @@ class GameRoom:
             self.players = []
         self.players.append(player)
 
-        self.send_to_storyteller(player_taken_seat(self.info.gid, spectator.id, spectator.name, seat_no))
+        #self.send_to_storyteller(player_taken_seat(self.info.gid, spectator.id, spectator.name, seat_no))
         self.broadcast()
         return True, None
 

@@ -10,5 +10,11 @@ export interface Task {
 
 export interface Option {
   id: string,
-  name: string
+  name: string,
+  role: Role
+}
+
+export interface Role {
+  id: string,
+  
 }

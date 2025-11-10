@@ -41,6 +41,7 @@ class RoleType(Enum):
 
 
 class Phase(Enum):
+    CREATE = auto()
     SETUP = auto()
     NIGHT = auto()
     DAY = auto()
@@ -108,7 +109,7 @@ class Game:
     slots: List[str]
     players: List[Player]
     roles_by_slot: dict[int, str] = field(default_factory=dict)
-    phase: Phase = Phase.SETUP
+    phase: Phase = Phase.CREATE
     night: int = 0
     pending_dawn: List[int] = field(default_factory=list)
     log: List[str] = field(default_factory=list)
@@ -134,9 +135,6 @@ class Game:
             self.roles_by_slot[slot] = role
             player = self.player(slot)
             player.role = role
-
-        # Remove this later.  For now I just want to check that DomainEvents are emitted.
-        # self._emit(DomainEvent("PlayerExecuted", {"message": "Test message"}))
 
     def request_setup_task(self, *, kind: str, role: str, owner_id: int,
                            prompt: str, options: list[int] | None = None,
@@ -193,11 +191,13 @@ class Game:
         self._on_exit(cur)
         self.phase = self._next_phase(cur)
         self._on_enter(self.phase)
+        # Broadcast here rather than in the handler?
         return self.phase
 
     @staticmethod
     def _next_phase(p: Phase) -> Phase:
         return {
+            Phase.CREATE: Phase.SETUP,
             Phase.SETUP: Phase.NIGHT,
             Phase.NIGHT: Phase.DAY,
             Phase.DAY: Phase.VOTING,
@@ -237,6 +237,16 @@ class Game:
 
         elif p == Phase.DAY:
             self.start_day()
+
+    def _setup(self):
+        for player in self.players:
+            role = getattr(player, "role", None)
+            if not role:
+                continue
+            if getattr(role, "owner", None) != player.id:
+                setattr(role, "owner", player.id)
+            if getattr(role, "on_setup"):
+                role.on_setup(self)
 
     def start_day(self) -> None:
         # ready the day; call role hooks later as needed

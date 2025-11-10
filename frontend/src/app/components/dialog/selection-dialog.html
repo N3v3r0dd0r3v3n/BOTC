@@ -5,7 +5,7 @@
     class="radio-group"
     [(ngModel)]="selection">
     @for (option of data.options; track option) {
-      <mat-radio-button class="radio-button" [value]="option">{{option.name}}</mat-radio-button>
+      <mat-radio-button class="radio-button" [value]="option">{{option.name}} - {{option.role.id}}</mat-radio-button>
     }
   </mat-radio-group>
 </mat-dialog-content>

@@ -11,13 +11,10 @@ class StepHandler(BaseHandler):
             self.write({"error": "room_not_found"})
             return
 
-        current_phase = room.game.phase
-        print("Current phase is " + str(current_phase))
-
-        #room.game.step()
-
-        #try this before we fuck around too much
         room.game.advance()
 
-        room.broadcast()
+        # Don't broadcast until the game has begun
+        # This might change later as we get more into the game
+        if room.game.phase != Phase.SETUP:
+            room.broadcast()
         self.write({"ok": True, "phase": room.game.phase.name, "night": room.game.night})
