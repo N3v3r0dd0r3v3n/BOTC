@@ -9,6 +9,8 @@ from botc.prompt import AutoPrompt
 from botc.scripts import ROLE_REGISTRY
 from botc.scripts import Script
 
+import dataclasses
+
 Noop = lambda ev: None
 
 
@@ -220,19 +222,21 @@ class Game:
             print("Setting up")
             self._setup()
         if p == Phase.NIGHT:
+            n1_info = None
             # increment night on entry
             self.night = 1 if self.night == 0 else self.night + 1
             self.night_protected.clear()
 
             if self.night == 1:
-                self._compute_night_one_info()
+                n1_info = self._compute_night_one_info()
 
             self.wake_list = self.build_wake_list()
             self.wake_index = 0
 
             self._emit(DomainEvent("NightPrepared", {
                 "night": self.night,
-                "wake_list": self.wake_list
+                "wake_list": self.wake_list,
+                "n1_info": dataclasses.asdict(n1_info) if n1_info else None
             }))
 
         elif p == Phase.DAY:
@@ -341,7 +345,7 @@ class Game:
         random.shuffle(available_bluffs)
         bluffs = available_bluffs[:3]
 
-        self.n1_info = NightOneInfo(
+        return NightOneInfo(
             demon_id=demon_id,
             minion_ids=minion_ids,
             demon_bluffs=bluffs

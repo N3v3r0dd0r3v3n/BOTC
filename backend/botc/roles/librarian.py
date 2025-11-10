@@ -29,7 +29,8 @@ class Librarian:
                 options=outsiders,
             )
 
-    def apply_setup(self, kind: str, selection: dict, game: Game):
+    def apply_setup(self, task: str, selection: dict, game: Game):
+        kind = task['kind']
         if kind != "select_outsider" and kind != "select_wrong":
             return
         me = game.player(self.owner)
@@ -53,9 +54,9 @@ class Librarian:
                     options=wrong_options,
                 )
         elif kind == "select_wrong":
-            selected_wrong = selection.get("player_id")
-            if selected_wrong in [p for p in game.alive_players()]:
-                self.wrong = selected_wrong
+            selected_wrong = selection["id"]
+            if selected_wrong in [p.id for p in game.alive_players()]:
+                self.wrong = selection
 
     def on_night(self, g: Game):
         if g.night != 1:

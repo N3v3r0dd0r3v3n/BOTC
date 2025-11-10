@@ -21,14 +21,17 @@
               {{seat.occupant!.role.id}}
           </div>
         } @else {
-          <div class="role-circle" class="role-circle"
+          <div class="role-circle"
               [ngStyle]="{ 'font-size': getRoleFontSize('Washer woman') }">
           </div>
         }
 
         @if (this.isStoryteller) {
           <div class="info-ring">
-            <div class="info-slot"></div>
+            <div class="info-slot"
+              [ngStyle]="{ 'font-size': getRoleFontSize('Washer woman') }">
+              {{seat.tokens}}
+            </div>
           </div>
         }
 

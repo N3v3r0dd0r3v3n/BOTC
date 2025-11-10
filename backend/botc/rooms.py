@@ -173,7 +173,8 @@ class GameRoom:
         if self.storytellerSocket:
             try:
                 self.storytellerSocket.send({"type": "state", "view": view_for_storyteller(self.game, self)})
-            except Exception:
+            except Exception as ex:
+                print(ex)
                 self.storytellerSocket = None
 
         # room viewers
@@ -347,6 +348,8 @@ class GameRoom:
             )
             self._next_task_id += 1
             self.setup_tasks.append(task)
+            self.send_to_storyteller({"type": "state", "view": view_for_storyteller(self.game, self)})
+            # Do I need this one below?
             self._notify_st({"type": "event", "event": "setup_tasks", "tasks": [self._public_task(task)]})
             return
 
@@ -369,7 +372,7 @@ class GameRoom:
         if not role or getattr(role, "id", "") != t.role or not hasattr(role, "apply_setup"):
             raise ValueError("role_mismatch")
 
-        role.apply_setup(t.kind, answer, self.game)
+        role.apply_setup(t, answer, self.game)
 
         t.status = TaskStatus.DONE
         self._notify_st({"type": "event", "event": "task_done", "id": t.id})

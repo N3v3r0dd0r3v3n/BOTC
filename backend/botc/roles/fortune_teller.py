@@ -41,7 +41,8 @@ class FortuneTeller:
                 options=goods,
             )
 
-    def apply_setup(self, kind: str, selection: dict, game: Game):
+    def apply_setup(self, task: str, selection: dict, game: Game):
+        kind = task['kind']
         if kind != "select_red_herring":
             return
 

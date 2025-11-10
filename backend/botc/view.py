@@ -88,7 +88,7 @@ def _add_token(base_view: dict, seat: Seat, token: str) -> None:
     if seat is None:
         return
 
-    seat.s.setdefault("tokens", []).append(token)
+    seat.setdefault("tokens", []).append(token)
 
 
 def _add_info_tokens(base_view: dict, game: Game, room) -> None:
@@ -122,11 +122,11 @@ def _add_info_tokens(base_view: dict, game: Game, room) -> None:
         for attr in ["outsider", "townsfolk", "wrong", "minion", "red_herring"]:
             if hasattr(role, attr):
                 attribute = getattr(role, attr)
-                seat = _get_seat_for_player_id(base_view, attribute.id)
-                token = role['id'] + " " + attr
-                _add_token(base_view, seat, token)
-                print(attribute)
-
+                if attribute:
+                    seat = _get_seat_for_player_id(base_view, attribute['id'])
+                    token = role.id + " " + attr
+                    _add_token(base_view, seat, token)
+                    print(attribute)
 
 
 def view_for_storyteller(game: Game, room=None) -> dict:
@@ -140,5 +140,5 @@ def view_for_storyteller(game: Game, room=None) -> dict:
         base["phase"] = game.phase.name
         base["night"] = game.night
         #So far this is causing me a load of grief
-        #_add_info_tokens(base, game, room)
+        _add_info_tokens(base, game, room)
     return base

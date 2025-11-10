@@ -5,7 +5,8 @@ export interface Task {
   owner_id: string,
   prompt: string,
   status: string,
-  options: Option[]
+  options: Option[],
+  data?: NightDetails
 }
 
 export interface Option {
@@ -16,5 +17,11 @@ export interface Option {
 
 export interface Role {
   id: string,
-  
+  owner: string,
+  name: string  
+}
+
+export interface NightDetails {
+  night: number,
+  wake_list: Role[]
 }

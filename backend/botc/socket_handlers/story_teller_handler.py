@@ -44,7 +44,10 @@ class StorytellerSocket(tornado.websocket.WebSocketHandler):
             player = self.room.player_by_id(player_id)
             role = player.role
             if role and getattr(role, "id", None) == msg["task"]["role"]:
-                role.apply_setup(kind=msg["task"]["kind"], selection=msg["task"]["selection"], game=self.room.game)
+                role.apply_setup(
+                    task=msg["task"],
+                    selection=msg["task"]["selection"],
+                    game=self.room.game)
 
         """
         if msg.get("type") == "perform_task":

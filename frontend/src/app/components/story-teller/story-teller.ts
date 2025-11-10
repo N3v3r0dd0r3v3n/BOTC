@@ -7,6 +7,7 @@ import { Seat } from '../../models/room.model';
 import { RoomStateStore } from '../services/socket-state-service';
 import { MatDialog } from '@angular/material/dialog';
 import { Dialog } from '../dialog/selection-dialog';
+import { NightRotaDialog } from '../night-rota-dialog/night-rota-dialog';
 import { Task } from '../../models/message.model';
 
 @Component({
@@ -48,7 +49,9 @@ export class StoryTeller  {
         }
       } else if (message.type == "patch") {
         if (message.kind == "PhaseChange") {
-          alert("Phase changed.  But to what?????")
+          alert("Phase changed.  But to what?????");
+          console.log(message);
+          this.performNightRota(message);
         }
       }
       //console.log("Imperative has been updated")
@@ -91,9 +94,29 @@ export class StoryTeller  {
     return Promise.resolve();
   }
 
+  performNightRota(task: Task) {
+    console.log(task);
+    console.log(task.data?.wake_list)
+    const nightRotaDialog = this.dialog.open(NightRotaDialog,{
+      disableClose: true,
+      position: {
+        left: '10px'
+      },
+      width: '300px',
+      data: { 
+        title: "Night " + task.data?.night + " rota",
+        wake_list: task.data?.wake_list }
+    });
+
+    nightRotaDialog.afterClosed().subscribe(selection => {
+      alert("Weel that did that")
+    })
+  }
+
 
   private performSelection(task: Task) {
     const dialogRef = this.dialog.open(Dialog, {
+      disableClose: true,
       position: {
         left: '10px'
       },

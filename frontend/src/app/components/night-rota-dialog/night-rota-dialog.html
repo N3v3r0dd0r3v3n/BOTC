@@ -1,0 +1,17 @@
+<h2 class="dialog-header">{{data.title}}</h2>
+<mat-dialog-content>
+  <!--
+  <mat-radio-group
+    aria-labelledby="radio-group-label"
+    class="radio-group"
+    [(ngModel)]="selection">
+    @for (option of data.options; track option) {
+      <mat-radio-button class="radio-button" [value]="option">{{option.name}} - {{option.role.id}}</mat-radio-button>
+    }
+  </mat-radio-group>
+  -->
+  {{ data.wake_list | json}}
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-raised-button color="warn" (click)="onConfirm()" [disabled]="isDisabled()">Select</button>
+</mat-dialog-actions>

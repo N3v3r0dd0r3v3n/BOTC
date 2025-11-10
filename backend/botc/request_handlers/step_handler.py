@@ -15,6 +15,10 @@ class StepHandler(BaseHandler):
 
         # Don't broadcast until the game has begun
         # This might change later as we get more into the game
+
+        # Bug it doesn't show phase update to storyteller.
         if room.game.phase != Phase.SETUP:
             room.broadcast()
+
+
         self.write({"ok": True, "phase": room.game.phase.name, "night": room.game.night})

@@ -41,4 +41,9 @@ export interface RoomView {
 export interface Seat {
   seat: number;
   occupant: Player | null;
+  tokens: Token[]
+}
+
+export interface Token {
+  
 }
